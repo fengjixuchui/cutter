@@ -132,6 +132,10 @@ void MainWindow::initUI()
 {
     ui->setupUi(this);
 
+    // Initialize context menu extensions for plugins
+    disassemblyContextMenuExtensions = new QMenu(tr("Plugins"), this);
+    addressableContextMenuExtensions = new QMenu(tr("Plugins"), this);
+
     connect(ui->actionExtraGraph, &QAction::triggered, this, &MainWindow::addExtraGraph);
     connect(ui->actionExtraDisassembly, &QAction::triggered, this, &MainWindow::addExtraDisassembly);
     connect(ui->actionExtraHexdump, &QAction::triggered, this, &MainWindow::addExtraHexdump);
@@ -193,7 +197,7 @@ void MainWindow::initUI()
     initBackForwardMenu();
 
     /* Setup plugins interfaces */
-    for (auto plugin : Plugins()->getPlugins()) {
+    for (auto &plugin : Plugins()->getPlugins()) {
         plugin->setupInterface(this);
     }
 
@@ -408,11 +412,6 @@ void MainWindow::addExtraWidget(CutterDockWidget *extraDock)
     restoreExtraDock.restoreWidth(extraDock->widget());
 }
 
-/**
- * @brief Getter for MainWindow's different menus
- * @param type The type which represents the desired menu
- * @return The requested menu or nullptr if "type" is invalid
-**/
 QMenu *MainWindow::getMenuByType(MenuType type)
 {
     switch (type) {
@@ -1208,7 +1207,12 @@ void MainWindow::showDebugDocks()
 
 void MainWindow::enableDebugWidgetsMenu(bool enable)
 {
-    ui->menuAddDebugWidgets->setEnabled(enable);
+    for (QAction *action : ui->menuAddDebugWidgets->actions()) {
+        // The breakpoints menu should be available outside of debug
+        if (!action->text().contains("Breakpoints")) {
+            action->setEnabled(enable);
+        }
+    }
 }
 
 void MainWindow::resetToDefaultLayout()
@@ -1659,4 +1663,16 @@ void MainWindow::onZoomOut()
 void MainWindow::onZoomReset()
 {
   Config()->setZoomFactor(1.0);
+}
+
+QMenu *MainWindow::getContextMenuExtensions(ContextMenuType type)
+{
+    switch (type) {
+    case ContextMenuType::Disassembly:
+        return disassemblyContextMenuExtensions;
+    case ContextMenuType::Addressable:
+        return addressableContextMenuExtensions;
+    default:
+        return nullptr;
+    }
 }

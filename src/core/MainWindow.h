@@ -101,6 +101,11 @@ public:
 
     void addPluginDockWidget(QDockWidget *dockWidget, QAction *action);
     enum class MenuType { File, Edit, View, Windows, Debug, Help, Plugins };
+    /**
+     * @brief Getter for MainWindow's different menus
+     * @param type The type which represents the desired menu
+     * @return The requested menu or nullptr if "type" is invalid
+     */
     QMenu *getMenuByType(MenuType type);
     void addMenuFileAction(QAction *action);
 
@@ -119,6 +124,15 @@ public:
     QMenu *createShowInMenu(QWidget *parent, RVA address);
     void setCurrentMemoryWidget(MemoryDockWidget* memoryWidget);
     MemoryDockWidget* getLastMemoryWidget();
+
+    /* Context menu plugins */
+    enum class ContextMenuType { Disassembly, Addressable };
+    /**
+     * @brief Fetches the pointer to a context menu extension of type
+     * @param type - the type of the context menu
+     * @return plugins submenu of the selected context menu
+     */
+    QMenu *getContextMenuExtensions(ContextMenuType type);
 
 public slots:
     void finalizeOpen();
@@ -257,6 +271,9 @@ private:
     NewFileDialog      *newFileDialog = nullptr;
     QDockWidget        *breakpointDock = nullptr;
     QDockWidget        *registerRefsDock = nullptr;
+
+    QMenu *disassemblyContextMenuExtensions = nullptr;
+    QMenu *addressableContextMenuExtensions = nullptr;
 
     void initUI();
     void initToolBar();

@@ -151,7 +151,15 @@ DisassemblyContextMenu::DisassemblyContextMenu(QWidget *parent, MainWindow *main
 
     addSeparator();
 
+    addBreakpointMenu();
     addDebugMenu();
+
+    addSeparator();
+
+    pluginMenu = mainWindow->getContextMenuExtensions(MainWindow::ContextMenuType::Disassembly);
+    pluginActionMenuAction = addMenu(pluginMenu);
+
+    addSeparator();
 
     connect(this, &DisassemblyContextMenu::aboutToShow,
             this, &DisassemblyContextMenu::aboutToShowSlot);
@@ -287,16 +295,21 @@ void DisassemblyContextMenu::addEditMenu()
     editMenu->addAction(&actionJmpReverse);
 }
 
-void DisassemblyContextMenu::addDebugMenu()
+void DisassemblyContextMenu::addBreakpointMenu()
 {
-    debugMenu = addMenu(tr("Debug"));
+    breakpointMenu = addMenu(tr("Breakpoint"));
 
     initAction(&actionAddBreakpoint, tr("Add/remove breakpoint"),
                SLOT(on_actionAddBreakpoint_triggered()), getAddBPSequence());
-    debugMenu->addAction(&actionAddBreakpoint);
+    breakpointMenu->addAction(&actionAddBreakpoint);
     initAction(&actionAdvancedBreakpoint, tr("Advanced breakpoint"),
                SLOT(on_actionAdvancedBreakpoint_triggered()), QKeySequence(Qt::CTRL+Qt::Key_F2));
-    debugMenu->addAction(&actionAdvancedBreakpoint);
+    breakpointMenu->addAction(&actionAdvancedBreakpoint);
+}
+
+void DisassemblyContextMenu::addDebugMenu()
+{
+    debugMenu = addMenu(tr("Debug"));
 
     initAction(&actionContinueUntil, tr("Continue until line"),
                SLOT(on_actionContinueUntil_triggered()));
@@ -515,6 +528,11 @@ void DisassemblyContextMenu::aboutToShowSlot()
                                      tr("Edit breakpoint") : tr("Advanced breakpoint"));
     QString progCounterName = Core()->getRegisterName("PC").toUpper();
     actionSetPC.setText("Set " + progCounterName + " here");
+
+    pluginActionMenuAction->setVisible(!pluginMenu->isEmpty());
+    for (QAction *pluginAction : pluginMenu->actions()) {
+        pluginAction->setData(QVariant::fromValue(offset));
+    }
 }
 
 QKeySequence DisassemblyContextMenu::getCopySequence() const
@@ -709,7 +727,7 @@ bool DisassemblyContextMenu::writeFailed()
     msgBox.setIcon(QMessageBox::Icon::Critical);
     msgBox.setWindowTitle(tr("Write error"));
     msgBox.setText(
-        tr("Unable to complete write operation. Consider opening in write mode. \n\nWARNING: In write mode any changes will be commited to disk"));
+        tr("Unable to complete write operation. Consider opening in write mode. \n\nWARNING: In write mode any changes will be committed to disk"));
     msgBox.addButton(tr("OK"), QMessageBox::NoRole);
     QAbstractButton *reopenButton = msgBox.addButton(tr("Reopen in write mode and try again"),
                                                      QMessageBox::YesRole);

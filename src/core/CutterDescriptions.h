@@ -9,6 +9,7 @@
 #include <QList>
 #include <QStringList>
 #include <QMetaType>
+#include <QColor>
 #include "core/CutterCommon.h"
 
 struct FunctionDescription {
@@ -36,6 +37,7 @@ struct ImportDescription {
     QString bind;
     QString type;
     QString name;
+    QString libname;
 };
 
 struct ExportDescription {
@@ -117,6 +119,7 @@ struct FlagDescription {
     RVA offset;
     RVA size;
     QString name;
+    QString realname;
 };
 
 struct SectionDescription {
@@ -306,10 +309,9 @@ struct ProcessDescription {
     QString path;
 };
 
-struct RegisterRefDescription {
-    QString reg;
-    QString value;
+struct RefDescription {
     QString ref;
+    QColor refColor;
 };
 
 struct VariableDescription {
@@ -355,7 +357,7 @@ Q_DECLARE_METATYPE(MemoryMapDescription)
 Q_DECLARE_METATYPE(BreakpointDescription)
 Q_DECLARE_METATYPE(BreakpointDescription::PositionType)
 Q_DECLARE_METATYPE(ProcessDescription)
-Q_DECLARE_METATYPE(RegisterRefDescription)
+Q_DECLARE_METATYPE(RefDescription)
 Q_DECLARE_METATYPE(VariableDescription)
 
 #endif // DESCRIPTIONS_H

@@ -6,6 +6,7 @@
 #include "common/BasicInstructionHighlighter.h"
 
 #include <QMap>
+#include <QMenu>
 #include <QDebug>
 #include <QObject>
 #include <QStringList>
@@ -140,7 +141,7 @@ public:
     /**
      * @brief Get nearest flag at or before offset.
      * @param offset search position
-     * @param flagOffsetOut adress of returned flag
+     * @param flagOffsetOut address of returned flag
      * @return flag name
      */
     QString nearestFlag(RVA offset, RVA *flagOffsetOut);
@@ -311,6 +312,11 @@ public:
      * @param depth telescoping depth 
      */
     QJsonObject getAddrRefs(RVA addr, int depth);
+    /**
+     * @brief return a RefDescription with a formatted ref string and configured colors
+     * @param ref the "ref" JSON node from getAddrRefs
+     */
+    RefDescription formatRefDesc(QJsonObject ref);
     /**
      * @brief Get a list of a given process's threads
      * @param pid The pid of the process, -1 for the currently debugged process
@@ -513,7 +519,11 @@ public:
     BlockStatistics getBlockStatistics(unsigned int blocksCount);
     QList<BreakpointDescription> getBreakpoints();
     QList<ProcessDescription> getAllProcesses();
-    QList<RegisterRefDescription> getRegisterRefs();
+    /**
+     * @brief returns a list of reg values and their telescoped references
+     * @param depth telescoping depth
+     */
+    QList<QJsonObject> getRegisterRefs(int depth = 6);
     QJsonObject getRegisterJson();
     QList<VariableDescription> getVariables(RVA at);
 

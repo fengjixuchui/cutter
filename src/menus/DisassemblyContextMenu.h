@@ -157,9 +157,13 @@ private:
 
     QMenu *debugMenu;
     QAction actionContinueUntil;
+    QAction actionSetPC;
+
+    QMenu *breakpointMenu;
     QAction actionAddBreakpoint;
     QAction actionAdvancedBreakpoint;
-    QAction actionSetPC;
+
+    QMenu *pluginMenu;
 
     QAction actionSetToCode;
 
@@ -178,6 +182,7 @@ private:
 
     QAction showInSubmenu;
     QList<QAction*> showTargetMenuActions;
+    QAction *pluginActionMenuAction;
 
     // For creating anonymous entries (that are always visible)
     QAction *addAnonymousAction(QString name, const char *slot, QKeySequence shortcut);
@@ -195,6 +200,7 @@ private:
     void addSetAsMenu();
     void addSetToDataMenu();
     void addEditMenu();
+    void addBreakpointMenu();
     void addDebugMenu();
 
     struct ThingUsedHere {

@@ -39,7 +39,13 @@ AddressableItemContextMenu::AddressableItemContextMenu(QWidget *parent, MainWind
     addSeparator();
     addAction(&actionAddcomment);
 
+    addSeparator();
+    pluginMenu = mainWindow->getContextMenuExtensions(MainWindow::ContextMenuType::Addressable);
+    pluginMenuAction = addMenu(pluginMenu);
+    addSeparator();
+
     setHasTarget(hasTarget);
+
     connect(this, &QMenu::aboutToShow, this, &AddressableItemContextMenu::aboutToShowSlot);
 }
 
@@ -98,6 +104,11 @@ void AddressableItemContextMenu::aboutToShowSlot()
         actionShowInMenu.menu()->deleteLater();
     }
     actionShowInMenu.setMenu(mainWindow->createShowInMenu(this, offset));
+
+    pluginMenuAction->setVisible(!pluginMenu->isEmpty());
+    for (QAction *pluginAction : pluginMenu->actions()) {
+        pluginAction->setData(QVariant::fromValue(offset));
+    }
 }
 
 void AddressableItemContextMenu::setHasTarget(bool hasTarget)
