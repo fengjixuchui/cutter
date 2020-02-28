@@ -4,7 +4,7 @@ TARGET = Cutter
 
 CUTTER_VERSION_MAJOR = 1
 CUTTER_VERSION_MINOR = 10
-CUTTER_VERSION_PATCH = 0
+CUTTER_VERSION_PATCH = 1
 
 VERSION = $${CUTTER_VERSION_MAJOR}.$${CUTTER_VERSION_MINOR}.$${CUTTER_VERSION_PATCH}
 
@@ -87,7 +87,7 @@ win32:defined(CUTTER_DEPS_DIR, var) {
     !defined(PYSIDE_TYPESYSTEMS, var)           PYSIDE_TYPESYSTEMS="$${CUTTER_DEPS_DIR}/pyside/share/PySide2/typesystems"
 }
 
-INCLUDEPATH *= . core widgets dialogs common plugins
+INCLUDEPATH *= . core widgets dialogs common plugins menus
 
 win32 {
     # Generate debug symbols in release mode

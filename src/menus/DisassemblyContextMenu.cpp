@@ -156,8 +156,10 @@ DisassemblyContextMenu::DisassemblyContextMenu(QWidget *parent, MainWindow *main
 
     addSeparator();
 
-    pluginMenu = mainWindow->getContextMenuExtensions(MainWindow::ContextMenuType::Disassembly);
-    pluginActionMenuAction = addMenu(pluginMenu);
+    if (mainWindow) {
+        pluginMenu = mainWindow->getContextMenuExtensions(MainWindow::ContextMenuType::Disassembly);
+        pluginActionMenuAction = addMenu(pluginMenu);
+    }
 
     addSeparator();
 
@@ -238,7 +240,7 @@ void DisassemblyContextMenu::addSetAsMenu()
                SLOT(on_actionSetAsString_triggered()), getSetAsStringSequence());
     initAction(&actionSetAsStringRemove, tr("Remove"),
                SLOT(on_actionSetAsStringRemove_triggered()));
-    initAction(&actionSetAsStringAdvanced, tr("Adanced"),
+    initAction(&actionSetAsStringAdvanced, tr("Advanced"),
                SLOT(on_actionSetAsStringAdvanced_triggered()));
 
 
@@ -327,7 +329,15 @@ QVector<DisassemblyContextMenu::ThingUsedHere> DisassemblyContextMenu::getThingU
     for (const auto &thing : array) {
         auto obj = thing.toObject();
         RVA offset = obj["offset"].toVariant().toULongLong();
-        QString name = obj["name"].toString();
+        QString name;
+
+        // If real names display is enabled, show flag's real name instead of full flag name
+        if (Config()->getConfigBool("asm.flags.real") && obj.contains("realname")) {
+            name = obj["realname"].toString();
+        } else {
+            name = obj["name"].toString();
+        }
+
         QString typeString = obj["type"].toString();
         ThingUsedHere::Type type = ThingUsedHere::Type::Address;
         if (typeString == "var") {
@@ -475,8 +485,17 @@ void DisassemblyContextMenu::aboutToShowSlot()
         actionRename.setVisible(true);
         actionRename.setText(tr("Rename function \"%1\"").arg(fcn->name));
     } else if (f) {
+        QString name;
+
+        // Check if Realname is enabled. If yes, show it instead of the full flag-name.
+        if (Config()->getConfigBool("asm.flags.real") && f->realname) {
+            name = f->realname;
+        } else {
+            name = f->name;
+        }
+
         actionRename.setVisible(true);
-        actionRename.setText(tr("Rename flag \"%1\"").arg(f->name));
+        actionRename.setText(tr("Rename flag \"%1\"").arg(name));
     } else {
         actionRename.setVisible(false);
     }
@@ -529,9 +548,11 @@ void DisassemblyContextMenu::aboutToShowSlot()
     QString progCounterName = Core()->getRegisterName("PC").toUpper();
     actionSetPC.setText("Set " + progCounterName + " here");
 
-    pluginActionMenuAction->setVisible(!pluginMenu->isEmpty());
-    for (QAction *pluginAction : pluginMenu->actions()) {
-        pluginAction->setData(QVariant::fromValue(offset));
+    if (pluginMenu) {
+        pluginActionMenuAction->setVisible(!pluginMenu->isEmpty());
+        for (QAction *pluginAction : pluginMenu->actions()) {
+            pluginAction->setData(QVariant::fromValue(offset));
+        }
     }
 }
 
