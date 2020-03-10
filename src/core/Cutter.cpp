@@ -445,7 +445,14 @@ QJsonDocument CutterCore::parseJson(const char *res, const char *cmd)
         } else {
             eprintf("Failed to parse JSON: %s\n", jsonError.errorString().toLocal8Bit().constData());
         }
-        eprintf("%s\n", json.constData());
+        const int MAX_JSON_DUMP_SIZE = 8 * 1024;
+        if (json.length() > MAX_JSON_DUMP_SIZE) {
+            int originalSize = json.length();
+            json.resize(MAX_JSON_DUMP_SIZE);
+            eprintf("%d bytes total: %s ...\n", originalSize, json.constData());
+        } else {
+            eprintf("%s\n", json.constData());
+        }
     }
 
     return doc;
@@ -903,6 +910,13 @@ bool CutterCore::getConfigb(const char *k)
 {
     CORE_LOCK();
     return r_config_get_i(core->config, k) != 0;
+}
+
+QString CutterCore::getConfigDescription(const char *k)
+{
+    CORE_LOCK();
+    RConfigNode *node = r_config_node_get (core->config, k);
+    return QString(node->desc);
 }
 
 void CutterCore::triggerRefreshAll()
