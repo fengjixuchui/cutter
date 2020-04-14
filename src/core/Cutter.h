@@ -14,6 +14,7 @@
 #include <QJsonDocument>
 #include <QErrorMessage>
 #include <QMutex>
+#include <QDir>
 
 class AsyncTaskManager;
 class BasicInstructionHighlighter;
@@ -72,12 +73,25 @@ public:
      */
     bool asyncCmd(const char *str, QSharedPointer<R2Task> &task);
     bool asyncCmd(const QString &str, QSharedPointer<R2Task> &task) { return asyncCmd(str.toUtf8().constData(), task); }
-    QString cmdRaw(const QString &str);
 
     /**
-     * @brief Execute a command \a cmd at \a address. The function will preform a silent seek to the address
+     * @brief Execute a radare2 command \a cmd.  By nature, the API
+     * is executing raw commands, and thus ignores multiple commands and overcome command injections.
+     * @param cmd - a raw command to execute. Passing multiple commands (e.g "px 5; pd 7 && pdf") will result in them treated as arguments to first command.
+     * @return the output of the command
+     */
+    QString cmdRaw(const char *cmd);
+
+    /**
+     * @brief a wrapper around cmdRaw(const char *cmd,).
+     */
+    QString cmdRaw(const QString &cmd) { return cmdRaw(cmd.toUtf8().constData()); };
+
+    /**
+     * @brief Execute a radare2 command \a cmd at \a address. The function will preform a silent seek to the address
      * without triggering the seekChanged event nor adding new entries to the seek history. By nature, the
-     * API is executing raw commands, and thus ignores multiple commands and overcome command injections.
+     * API is executing a single command without going through radare2 shell, and thus ignores multiple commands 
+     * and tries to overcome command injections.
      * @param cmd - a raw command to execute. If multiple commands will be passed (e.g "px 5; pd 7 && pdf") then
      * only the first command will be executed.
      * @param address - an address to which Cutter will temporarily seek.
@@ -89,6 +103,7 @@ public:
      * @brief a wrapper around cmdRawAt(const char *cmd, RVA address).
      */
     QString cmdRawAt(const QString &str, RVA address) { return cmdRawAt(str.toUtf8().constData(), address); }
+    
     QJsonDocument cmdj(const char *str);
     QJsonDocument cmdj(const QString &str) { return cmdj(str.toUtf8().constData()); }
     QStringList cmdList(const char *str) { return cmd(str).split(QLatin1Char('\n'), QString::SkipEmptyParts); }
@@ -154,6 +169,7 @@ public:
     void delFlag(RVA addr);
     void delFlag(const QString &name);
     void addFlag(RVA offset, QString name, RVA size);
+    QString listFlagsAsStringAt(RVA addr);
     /**
      * @brief Get nearest flag at or before offset.
      * @param offset search position
@@ -202,6 +218,7 @@ public:
     /* Comments */
     void setComment(RVA addr, const QString &cmt);
     void delComment(RVA addr);
+    QString getCommentAt(RVA addr);
     void setImmediateBase(const QString &r2BaseName, RVA offset = RVA_INVALID);
     void setCurrentBits(int bits, RVA offset = RVA_INVALID);
 
@@ -230,7 +247,7 @@ public:
     bool loadFile(QString path, ut64 baddr = 0LL, ut64 mapaddr = 0LL, int perms = R_PERM_R,
                   int va = 0, bool loadbin = false, const QString &forceBinPlugin = QString());
     bool tryFile(QString path, bool rw);
-    bool openFile(QString path, RVA mapaddr);
+    bool mapFile(QString path, RVA mapaddr);
     void loadScript(const QString &scriptname);
     QJsonArray getOpenedFiles();
 
@@ -692,6 +709,8 @@ private:
 
     QSharedPointer<R2Task> debugTask;
     R2TaskDialog *debugTaskDialog;
+    
+    QVector<QDir> getCutterRCDirectories() const;
 };
 
 class RCoreLocked

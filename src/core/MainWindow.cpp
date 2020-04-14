@@ -23,7 +23,7 @@
 #include "dialogs/AboutDialog.h"
 #include "dialogs/RenameDialog.h"
 #include "dialogs/preferences/PreferencesDialog.h"
-#include "dialogs/OpenFileDialog.h"
+#include "dialogs/MapFileDialog.h"
 #include "dialogs/AsyncTaskDialog.h"
 
 // Widgets Headers
@@ -532,7 +532,7 @@ void MainWindow::displayInitialOptionsDialog(const InitialOptions &options, bool
 
 void MainWindow::openProject(const QString &project_name)
 {
-    QString filename = core->cmd("Pi " + project_name);
+    QString filename = core->cmdRaw("Pi " + project_name);
     setFilename(filename.trimmed());
 
     core->openProject(project_name);
@@ -547,7 +547,7 @@ void MainWindow::finalizeOpen()
     refreshAll();
 
     // Add fortune message
-    core->message("\n" + core->cmd("fo"));
+    core->message("\n" + core->cmdRaw("fo"));
     showMaximized();
 
 
@@ -1393,9 +1393,9 @@ void MainWindow::on_actionRun_Script_triggered()
  * @brief MainWindow::on_actionOpen_triggered
  * Open a file as in "load (add) a file in current session".
  */
-void MainWindow::on_actionOpen_triggered()
+void MainWindow::on_actionMap_triggered()
 {
-    OpenFileDialog dialog(this);
+    MapFileDialog dialog(this);
     dialog.exec();
 }
 
@@ -1551,6 +1551,8 @@ void MainWindow::on_actionExport_as_code_triggered()
     tempConfig.set("io.va", false);
     QTextStream fileOut(&file);
     QString &cmd = cmdMap[dialog.selectedNameFilter()];
+
+    // Use cmd because cmdRaw would not handle such input
     fileOut << Core()->cmd(cmd + " $s @ 0");
 }
 
