@@ -239,7 +239,7 @@ struct AnalVTableDescription {
 };
 
 struct ResourcesDescription {
-    int name;
+    QString name;
     RVA vaddr;
     ut64 index;
     QString type;
@@ -319,6 +319,12 @@ struct VariableDescription {
     RefType refType;
     QString name;
     QString type;
+};
+
+struct RegisterRefValueDescription {
+    QString name;
+    QString value;
+    QString ref;
 };
 
 Q_DECLARE_METATYPE(FunctionDescription)

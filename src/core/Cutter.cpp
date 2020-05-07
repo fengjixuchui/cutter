@@ -117,6 +117,12 @@ static void updateOwnedCharPtr(char *&variable, const QString &newValue)
     variable = strdup(data.data());
 }
 
+static QString fromOwnedCharPtr(char *str) {
+    QString result(str ? str : "");
+    r_mem_free(str);
+    return result;
+}
+
 RCoreLocked::RCoreLocked(CutterCore *core)
     : core(core)
 {
@@ -168,7 +174,7 @@ CutterCore *CutterCore::instance()
     return uniqueInstance;
 }
 
-void CutterCore::initialize()
+void CutterCore::initialize(bool loadPlugins)
 {
     r_cons_new();  // initialize console
     core_ = r_core_new();
@@ -202,7 +208,12 @@ void CutterCore::initialize()
     }
 #endif
 
-    r_core_loadlibs(this->core_, R_CORE_LOADLIBS_ALL, NULL);
+    if (!loadPlugins) {
+        setConfig("cfg.plugins", 0);
+    }
+    if (getConfigi("cfg.plugins")) {
+        r_core_loadlibs(this->core_, R_CORE_LOADLIBS_ALL, nullptr);
+    }
     // IMPLICIT r_bin_iobind (core_->bin, core_->io);
 
     // Otherwise r2 may ask the user for input and Cutter would freeze
@@ -329,8 +340,7 @@ QString CutterCore::cmd(const char *str)
 
     RVA offset = core->offset;
     char *res = r_core_cmd_str(core, str);
-    QString o = QString(res ? res : "");
-    r_mem_free(res);
+    QString o = fromOwnedCharPtr(res);
 
     if (offset != core->offset) {
         updateSeek();
@@ -782,7 +792,8 @@ void CutterCore::delComment(RVA addr)
  */
 QString CutterCore::getCommentAt(RVA addr)
 {
-    return Core()->cmdRawAt("CC.", addr);
+    CORE_LOCK();
+    return fromOwnedCharPtr(r_meta_get_string(core->anal, R_META_TYPE_COMMENT, addr));
 }
 
 void CutterCore::setImmediateBase(const QString &r2BaseName, RVA offset)
@@ -859,6 +870,7 @@ void CutterCore::seekAndShow(QString offset)
 void CutterCore::seek(QString thing)
 {
     cmdRaw(QString("s %1").arg(thing));
+    updateSeek();
 }
 
 void CutterCore::seekPrev()
@@ -1488,22 +1500,22 @@ QList<VariableDescription> CutterCore::getVariables(RVA at)
     return ret;
 }
 
-QJsonObject CutterCore::getRegisterJson()
+QVector<RegisterRefValueDescription> CutterCore::getRegisterRefValues()
 {
     QJsonArray registerRefArray = cmdj("drrj").array();
-    QJsonObject registerJson;
+    QVector<RegisterRefValueDescription> result;
 
-    for (const QJsonValue &value : registerRefArray) {
+    for (const QJsonValue value : registerRefArray) {
         QJsonObject regRefObject = value.toObject();
 
-        QJsonObject registers;
+        RegisterRefValueDescription desc;
+        desc.name = regRefObject[RJsonKey::reg].toString();
+        desc.value = regRefObject[RJsonKey::value].toString();
+        desc.ref = regRefObject[RJsonKey::ref].toString();
 
-        registers.insert(RJsonKey::value, regRefObject[RJsonKey::value]);
-        registers.insert(RJsonKey::ref, regRefObject[RJsonKey::ref]);
-
-        registerJson.insert(regRefObject[RJsonKey::reg].toString(), registers);
+        result.push_back(desc);
     }
-    return registerJson;
+    return result;
 }
 
 QString CutterCore::getRegisterName(QString registerRole)
@@ -3121,7 +3133,7 @@ QList<ResourcesDescription> CutterCore::getAllResources()
 
         ResourcesDescription res;
 
-        res.name = resourceObject[RJsonKey::name].toInt();
+        res.name = resourceObject[RJsonKey::name].toString();
         res.vaddr = resourceObject[RJsonKey::vaddr].toVariant().toULongLong();
         res.index = resourceObject[RJsonKey::index].toVariant().toULongLong();
         res.type = resourceObject[RJsonKey::type].toString();
@@ -3484,8 +3496,7 @@ QString CutterCore::listFlagsAsStringAt(RVA addr)
 {
     CORE_LOCK();
     char *flagList = r_flag_get_liststr (core->flags, addr);
-    QString result(flagList);
-    r_mem_free(flagList);
+    QString result = fromOwnedCharPtr(flagList);
     return result;
 }
 

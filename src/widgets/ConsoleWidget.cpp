@@ -128,13 +128,13 @@ ConsoleWidget::ConsoleWidget(MainWindow *main, QAction *action) :
 
     completer->popup()->installEventFilter(this);
 
-    redirectOutput();
+    if (Config()->getOutputRedirectionEnabled()) {
+        redirectOutput();
+    }
 }
 
 ConsoleWidget::~ConsoleWidget()
 {
-    delete completer;
-
 #ifndef Q_OS_WIN
     ::close(stdinFile);
     remove(stdinFifoPath.toStdString().c_str());

@@ -44,7 +44,7 @@ public:
     ~CutterCore();
     static CutterCore *instance();
 
-    void initialize();
+    void initialize(bool loadPlugins = true);
     void loadCutterRC();
 
     AsyncTaskManager *getAsyncTaskManager() { return asyncTaskManager; }
@@ -560,7 +560,7 @@ public:
      * @param depth telescoping depth
      */
     QList<QJsonObject> getRegisterRefs(int depth = 6);
-    QJsonObject getRegisterJson();
+    QVector<RegisterRefValueDescription> getRegisterRefValues();
     QList<VariableDescription> getVariables(RVA at);
 
     QList<XrefDescription> getXRefs(RVA addr, bool to, bool whole_function,
