@@ -109,6 +109,7 @@ static const QHash<QString, QVariant> asmOptions = {
     { "asm.lines.fcn",      true },
     { "asm.flags.offset",   false },
     { "asm.emu",            false },
+    { "emu.str",            false},
     { "asm.cmt.right",      true },
     { "asm.cmt.col",        35 },
     { "asm.var.summary",    false },
@@ -128,6 +129,8 @@ static const QHash<QString, QVariant> asmOptions = {
     { "asm.marks",          false },
     { "asm.refptr",         false },
     { "asm.flags.real",     true },
+    { "asm.reloff",         false },
+    { "asm.reloff.flags",   false },
     { "esil.breakoninvalid",true },
     { "graph.offset",       false}
 };
@@ -664,7 +667,7 @@ QStringList Configuration::getAvailableTranslations()
         }
     }
 
-    QStringList fileNames = fileNamesSet.toList();
+    QStringList fileNames = fileNamesSet.values();
     std::sort(fileNames.begin(), fileNames.end());
     QStringList languages;
     QString currLanguageName;
@@ -756,6 +759,22 @@ void Configuration::setBitmapExportScaleFactor(double inputValueGraph)
     s.setValue("bitmapGraphExportScale", inputValueGraph);
 }
 
+void Configuration::setGraphSpacing(QPoint blockSpacing, QPoint edgeSpacing)
+{
+    s.setValue("graph.blockSpacing", blockSpacing);
+    s.setValue("graph.edgeSpacing", edgeSpacing);
+}
+
+QPoint Configuration::getGraphBlockSpacing()
+{
+    return s.value("graph.blockSpacing", QPoint(10, 40)).value<QPoint>();
+}
+
+QPoint Configuration::getGraphEdgeSpacing()
+{
+    return s.value("graph.edgeSpacing", QPoint(10, 10)).value<QPoint>();
+}
+
 void Configuration::setOutputRedirectionEnabled(bool enabled)
 {
     this->outputRedirectEnabled = enabled;
@@ -765,4 +784,3 @@ bool Configuration::getOutputRedirectionEnabled() const
 {
     return outputRedirectEnabled;
 }
-

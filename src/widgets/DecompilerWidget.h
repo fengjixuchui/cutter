@@ -25,7 +25,7 @@ protected:
     DisassemblyContextMenu *mCtxMenu;
 
 public:
-    explicit DecompilerWidget(MainWindow *main, QAction *action = nullptr);
+    explicit DecompilerWidget(MainWindow *main);
     ~DecompilerWidget();
 public slots:
     void showDisasContextMenu(const QPoint &pt);
@@ -38,7 +38,7 @@ private slots:
     void decompilerSelected();
     void cursorPositionChanged();
     void seekChanged();
-    void decompilationFinished(AnnotatedCode code);
+    void decompilationFinished(RAnnotatedCode *code);
 
 private:
     std::unique_ptr<Ui::DecompilerWidget> ui;
@@ -56,8 +56,7 @@ private:
     bool decompilerWasBusy;
 
     RVA decompiledFunctionAddr;
-    AnnotatedCode code;
-
+    std::unique_ptr<RAnnotatedCode, void (*)(RAnnotatedCode*)> code;
     bool seekFromCursor = false;
 
     Decompiler *getCurrentDecompiler();
@@ -99,6 +98,7 @@ private:
      * It will also run when a breakpoint is added, removed or modified.
      */
     void highlightBreakpoints();
+
 };
 
 #endif // DECOMPILERWIDGET_H

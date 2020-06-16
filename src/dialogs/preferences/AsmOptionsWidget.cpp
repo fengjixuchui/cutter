@@ -34,6 +34,8 @@ AsmOptionsWidget::AsmOptionsWidget(PreferencesDialog *dialog)
         { ui->xrefCheckBox,         "asm.xrefs" },
         { ui->indentCheckBox,       "asm.indent" },
         { ui->offsetCheckBox,       "asm.offset" },
+        { ui->relOffsetCheckBox,    "asm.reloff" },
+        { ui->relOffFlagsCheckBox,  "asm.reloff.flags" },
         { ui->slowCheckBox,         "asm.slow" },
         { ui->linesCheckBox,        "asm.lines" },
         { ui->fcnlinesCheckBox,     "asm.lines.fcn" },
@@ -60,6 +62,8 @@ AsmOptionsWidget::AsmOptionsWidget(PreferencesDialog *dialog)
                 &AsmOptionsWidget::commentsComboBoxChanged);
     connect(ui->asmComboBox, static_cast<indexSignalType>(&QComboBox::currentIndexChanged), this,
                 &AsmOptionsWidget::asmComboBoxChanged);
+    connect(ui->offsetCheckBox, &QCheckBox::toggled, this, &AsmOptionsWidget::offsetCheckBoxToggled);
+    connect(ui->relOffsetCheckBox, &QCheckBox::toggled, this, &AsmOptionsWidget::relOffCheckBoxToggled);
     connect(Core(), SIGNAL(asmOptionsChanged()), this, SLOT(updateAsmOptionsFromVars()));
     updateAsmOptionsFromVars();
 }
@@ -74,6 +78,11 @@ void AsmOptionsWidget::updateAsmOptionsFromVars()
     ui->cmtcolSpinBox->setValue(Config()->getConfigInt("asm.cmt.col"));
     ui->cmtcolSpinBox->blockSignals(false);
     ui->cmtcolSpinBox->setEnabled(cmtRightEnabled);
+
+    bool offsetsEnabled = Config()->getConfigBool("asm.offset") || Config()->getConfigBool("graph.offset");
+    ui->relOffsetLabel->setEnabled(offsetsEnabled);
+    ui->relOffsetCheckBox->setEnabled(offsetsEnabled);
+    ui->relOffFlagsCheckBox->setEnabled(Config()->getConfigBool("asm.offset") && Config()->getConfigBool("asm.reloff"));
 
     bool bytesEnabled = Config()->getConfigBool("asm.bytes");
     ui->bytespaceCheckBox->setEnabled(bytesEnabled);
@@ -143,7 +152,6 @@ void AsmOptionsWidget::on_cmtcolSpinBox_valueChanged(int value)
     Config()->setConfig("asm.cmt.col", value);
     triggerAsmOptionsChanged();
 }
-
 
 void AsmOptionsWidget::on_bytesCheckBox_toggled(bool checked)
 {
@@ -255,6 +263,18 @@ void AsmOptionsWidget::asmComboBoxChanged(int index)
     // Check if Pseudocode enabled
     Config()->setConfig("asm.pseudo", index == 2);
     triggerAsmOptionsChanged();
+}
+
+void AsmOptionsWidget::offsetCheckBoxToggled(bool checked)
+{
+    ui->relOffsetLabel->setEnabled(checked || Config()->getConfigBool("graph.offset"));
+    ui->relOffsetCheckBox->setEnabled(checked || Config()->getConfigBool("graph.offset"));
+    ui->relOffFlagsCheckBox->setEnabled(checked && Config()->getConfigBool("asm.reloff"));
+}
+
+void AsmOptionsWidget::relOffCheckBoxToggled(bool checked)
+{
+    ui->relOffFlagsCheckBox->setEnabled(checked && Config()->getConfigBool("asm.offset"));
 }
 
 /**

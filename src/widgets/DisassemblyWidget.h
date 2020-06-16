@@ -22,7 +22,7 @@ class DisassemblyWidget : public MemoryDockWidget
 {
     Q_OBJECT
 public:
-    explicit DisassemblyWidget(MainWindow *main, QAction *action = nullptr);
+    explicit DisassemblyWidget(MainWindow *main);
     QWidget *getTextWidget();
 
     static QString getWidgetType();
@@ -134,7 +134,7 @@ private:
 };
 
 /**
- * @class This class is used to draw the left pane of the disassembly
+ * This class is used to draw the left pane of the disassembly
  * widget. Its goal is to draw proper arrows for the jumps of the disassembly.
  */
 class DisassemblyLeftPanel: public QFrame

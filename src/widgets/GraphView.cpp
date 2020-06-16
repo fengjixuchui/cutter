@@ -4,6 +4,7 @@
 #ifdef CUTTER_ENABLE_GRAPHVIZ
 #include "GraphvizLayout.h"
 #endif
+#include "GraphHorizontalAdapter.h"
 #include "Helpers.h"
 
 #include <vector>
@@ -36,7 +37,7 @@ GraphView::GraphView(QWidget *parent)
         glWidget = nullptr;
     }
 #endif
-    setGraphLayout(Layout::GridMedium);
+    setGraphLayout(makeGraphLayout(Layout::GridMedium));
 }
 
 GraphView::~GraphView()
@@ -129,12 +130,11 @@ void GraphView::contextMenuEvent(QContextMenuEvent *event)
     }
 }
 
-// This calculates the full graph starting at block entry.
-void GraphView::computeGraph(ut64 entry)
+void GraphView::computeGraphPlacement()
 {
     graphLayoutSystem->CalculateLayout(blocks, entry, width, height);
+    setCacheDirty();
     ready = true;
-
     viewport()->update();
 }
 
@@ -338,7 +338,7 @@ void GraphView::paint(QPainter &p, QPoint offset, QRect viewport, qreal scale, b
                 continue;
             }
             QPolygonF polyline = edge.polyline;
-            EdgeConfiguration ec = edgeConfiguration(block, &blocks[edge.target]);
+            EdgeConfiguration ec = edgeConfiguration(block, &blocks[edge.target], interactive);
             QPen pen(ec.color);
             pen.setStyle(ec.lineStyle);
             pen.setWidthF(pen.width() * ec.width_scale);
@@ -427,7 +427,6 @@ void GraphView::saveAsSvg(QString path)
     p.end();
 }
 
-
 void GraphView::center()
 {
     centerX(false);
@@ -513,36 +512,50 @@ QPoint GraphView::viewToLogicalCoordinates(QPoint p)
     return p / current_scale + offset;
 }
 
-void GraphView::setGraphLayout(GraphView::Layout layout)
+void GraphView::setGraphLayout(std::unique_ptr<GraphLayout> layout)
 {
-    graphLayout = layout;
+    graphLayoutSystem = std::move(layout);
+    if (!graphLayoutSystem) {
+        graphLayoutSystem = makeGraphLayout(Layout::GridMedium);
+    }
+}
+
+void GraphView::setLayoutConfig(const GraphLayout::LayoutConfig &config)
+{
+    graphLayoutSystem->setLayoutConfig(config);
+}
+
+std::unique_ptr<GraphLayout> GraphView::makeGraphLayout(GraphView::Layout layout, bool horizontal)
+{
+    std::unique_ptr<GraphLayout> result;
+    bool needAdapter = true;
     switch (layout) {
     case Layout::GridNarrow:
-        this->graphLayoutSystem.reset(new GraphGridLayout(GraphGridLayout::LayoutType::Narrow));
+        result.reset(new GraphGridLayout(GraphGridLayout::LayoutType::Narrow));
         break;
     case Layout::GridMedium:
-        this->graphLayoutSystem.reset(new GraphGridLayout(GraphGridLayout::LayoutType::Medium));
+        result.reset(new GraphGridLayout(GraphGridLayout::LayoutType::Medium));
         break;
     case Layout::GridWide:
-        this->graphLayoutSystem.reset(new GraphGridLayout(GraphGridLayout::LayoutType::Wide));
+        result.reset(new GraphGridLayout(GraphGridLayout::LayoutType::Wide));
         break;
 #ifdef CUTTER_ENABLE_GRAPHVIZ
     case Layout::GraphvizOrtho:
-        this->graphLayoutSystem.reset(new GraphvizLayout(GraphvizLayout::LineType::Ortho));
-        break;
-    case Layout::GraphvizOrthoLR:
-        this->graphLayoutSystem.reset(new GraphvizLayout(GraphvizLayout::LineType::Ortho,
-                                                         GraphvizLayout::Direction::LR));
+        result.reset(new GraphvizLayout(GraphvizLayout::LineType::Ortho,
+                                        horizontal ? GraphvizLayout::Direction::LR : GraphvizLayout::Direction::TB));
+        needAdapter = false;
         break;
     case Layout::GraphvizPolyline:
-        this->graphLayoutSystem.reset(new GraphvizLayout(GraphvizLayout::LineType::Polyline));
-        break;
-    case Layout::GraphvizPolylineLR:
-        this->graphLayoutSystem.reset(new GraphvizLayout(GraphvizLayout::LineType::Polyline,
-                                                         GraphvizLayout::Direction::LR));
+        result.reset(new GraphvizLayout(GraphvizLayout::LineType::Polyline,
+                                        horizontal ? GraphvizLayout::Direction::LR : GraphvizLayout::Direction::TB));
+        needAdapter = false;
         break;
 #endif
     }
+    if (needAdapter && horizontal) {
+        result.reset(new GraphHorizontalAdapter(std::move(result)));
+    }
+    return result;
 }
 
 void GraphView::addBlock(GraphView::GraphBlock block)

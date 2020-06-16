@@ -14,6 +14,7 @@
 #include "ui_ConsoleWidget.h"
 #include "common/Helpers.h"
 #include "common/SvgIconEngine.h"
+#include "WidgetShortcuts.h"
 
 #ifdef Q_OS_WIN
 #include <io.h>
@@ -37,8 +38,8 @@ static const int invalidHistoryPos = -1;
 
 static const char *consoleWrapSettingsKey = "console.wrap";
 
-ConsoleWidget::ConsoleWidget(MainWindow *main, QAction *action) :
-    CutterDockWidget(main, action),
+ConsoleWidget::ConsoleWidget(MainWindow *main) :
+    CutterDockWidget(main),
     ui(new Ui::ConsoleWidget),
     debugOutputEnabled(true),
     maxHistoryEntries(100),
@@ -59,8 +60,24 @@ ConsoleWidget::ConsoleWidget(MainWindow *main, QAction *action) :
     QTextDocument *console_docu = ui->outputTextEdit->document();
     console_docu->setDocumentMargin(10);
 
-    QAction *actionClear = new QAction(tr("Clear Output"), ui->outputTextEdit);
-    connect(actionClear, SIGNAL(triggered(bool)), ui->outputTextEdit, SLOT(clear()));
+    // Ctrl+` and ';' to toggle console widget
+    QAction *toggleConsole = toggleViewAction();
+    QList<QKeySequence> toggleShortcuts;
+    toggleShortcuts << widgetShortcuts["ConsoleWidget"] << widgetShortcuts["ConsoleWidgetAlternative"];
+    toggleConsole->setShortcuts(toggleShortcuts);
+    connect(toggleConsole, &QAction::triggered, this, [this, toggleConsole](){
+        if (toggleConsole->isChecked()) {
+            widgetToFocusOnRaise()->setFocus();
+        }
+    });
+
+    QAction *actionClear = new QAction(tr("Clear Output"), this);
+    connect(actionClear, &QAction::triggered, ui->outputTextEdit, &QPlainTextEdit::clear);
+    addAction(actionClear);
+
+    // Ctrl+l to clear the output
+    actionClear->setShortcut(Qt::CTRL + Qt::Key_L);
+    actionClear->setShortcutContext(Qt::WidgetWithChildrenShortcut);
     actions.append(actionClear);
 
     actionWrapLines = new QAction(tr("Wrap Lines"), ui->outputTextEdit);
@@ -155,6 +172,11 @@ bool ConsoleWidget::eventFilter(QObject *obj, QEvent *event)
         }
     }
     return false;
+}
+
+QWidget *ConsoleWidget::widgetToFocusOnRaise()
+{
+    return ui->r2InputLineEdit;
 }
 
 void ConsoleWidget::setupFont()

@@ -165,6 +165,9 @@ void InitialOptionsDialog::loadOptions(const InitialOptions &options)
         ui->entry_loadOffset->setText(RAddressString(options.binLoadAddr));
     }
 
+	ui->writeCheckBox->setChecked(options.writeEnabled);
+
+
     // TODO: all other options should also be applied to the ui
 }
 
@@ -278,7 +281,7 @@ void InitialOptionsDialog::setupAndStartAnalysis(/*int level, QList<QString> adv
         options.analCmd = { {"aaa", "Auto analysis"} };
         break;
     case 2:
-        options.analCmd = { {"aaaa", "Auto analysis (experimental}"} };
+        options.analCmd = { {"aaaa", "Auto analysis (experimental)"} };
         break;
     case 3:
         options.analCmd = getSelectedAdvancedAnalCmds();
