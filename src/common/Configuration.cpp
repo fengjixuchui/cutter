@@ -5,7 +5,6 @@
 #include <QFontDatabase>
 #include <QFile>
 #include <QApplication>
-#include <QLibraryInfo>
 
 #ifdef CUTTER_ENABLE_KSYNTAXHIGHLIGHTING
 #include <KSyntaxHighlighting/repository.h>
@@ -15,6 +14,7 @@
 
 #include "common/ColorThemeWorker.h"
 #include "common/SyntaxHighlighter.h"
+#include "common/ResourcePaths.h"
 
 /* Map with names of themes associated with its color palette
  * (Dark or Light), so for dark interface themes will be shown only Dark color themes
@@ -115,7 +115,7 @@ static const QHash<QString, QVariant> asmOptions = {
     { "asm.var.summary",    false },
     { "asm.bytes",          false },
     { "asm.size",           false },
-    { "asm.bytespace",      false },
+    { "asm.bytes.space",    false },
     { "asm.lbytes",         true },
     { "asm.nbytes",         10 },
     { "asm.syntax",         "intel" },
@@ -123,7 +123,7 @@ static const QHash<QString, QVariant> asmOptions = {
     { "asm.bb.line",        false },
     { "asm.capitalize",     false },
     { "asm.var.sub",        true },
-    { "asm.var.subonly",    true },
+    { "asm.sub.varonly",    true },
     { "asm.tabs",           8 },
     { "asm.tabs.off",       5 },
     { "asm.marks",          false },
@@ -652,7 +652,7 @@ void Configuration::setConfig(const QString &key, const QVariant &value)
  */
 QStringList Configuration::getAvailableTranslations()
 {
-    const auto &trDirs = getTranslationsDirectories();
+    const auto &trDirs = Cutter::getTranslationsDirectories();
 
     QSet<QString> fileNamesSet;
     for (const auto &trDir : trDirs) {
@@ -704,21 +704,6 @@ bool Configuration::isFirstExecution()
     }
 }
 
-QStringList Configuration::getTranslationsDirectories() const
-{
-    static const QString cutterTranslationPath = QCoreApplication::applicationDirPath() +
-                                                 QDir::separator()
-                                                 + QLatin1String("translations");
-
-    return {
-        cutterTranslationPath,
-        QLibraryInfo::location(QLibraryInfo::TranslationsPath),
-#ifdef Q_OS_MAC
-        QStringLiteral("%1/../Resources/translations").arg(QCoreApplication::applicationDirPath()),
-#endif // Q_OS_MAC
-    };
-}
-
 QString Configuration::getSelectedDecompiler()
 {
     return s.value("selectedDecompiler").toString();
@@ -767,7 +752,7 @@ void Configuration::setGraphSpacing(QPoint blockSpacing, QPoint edgeSpacing)
 
 QPoint Configuration::getGraphBlockSpacing()
 {
-    return s.value("graph.blockSpacing", QPoint(10, 40)).value<QPoint>();
+    return s.value("graph.blockSpacing", QPoint(20, 40)).value<QPoint>();
 }
 
 QPoint Configuration::getGraphEdgeSpacing()

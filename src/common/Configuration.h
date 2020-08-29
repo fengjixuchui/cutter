@@ -30,7 +30,7 @@ struct CutterInterfaceTheme {
 };
 
 
-class Configuration : public QObject
+class CUTTER_EXPORT Configuration : public QObject
 {
     Q_OBJECT
 private:
@@ -154,12 +154,6 @@ public:
     void setConfig(const QString &key, const QVariant &value);
     bool isFirstExecution();
     
-    /**
-     * @brief Get list of available translation directories (depends on configuration and OS)
-     * @return list of directories
-     */
-    QStringList getTranslationsDirectories() const;
-
     /**
      * @return id of the last selected decompiler (see CutterCore::getDecompilerById)
      */

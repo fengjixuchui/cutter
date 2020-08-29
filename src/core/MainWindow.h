@@ -52,6 +52,8 @@ class GraphWidget;
 class HexdumpWidget;
 class DecompilerWidget;
 class OverviewWidget;
+class R2GraphWidget;
+class CallGraphWidget;
 
 namespace Ui {
 class MainWindow;
@@ -119,8 +121,8 @@ public:
     QString getUniqueObjectName(const QString &widgetType) const;
     void showMemoryWidget();
     void showMemoryWidget(MemoryWidgetType type);
-
-    QMenu *createShowInMenu(QWidget *parent, RVA address);
+    enum class AddressTypeHint { Function, Data, Unknown };
+    QMenu *createShowInMenu(QWidget *parent, RVA address, AddressTypeHint addressType = AddressTypeHint::Unknown);
     void setCurrentMemoryWidget(MemoryDockWidget* memoryWidget);
     MemoryDockWidget* getLastMemoryWidget();
 
@@ -148,6 +150,8 @@ public slots:
 
     void on_actionTabs_triggered();
 
+    void on_actionAnalyze_triggered();
+
     void lockUnlock_Docks(bool what);
 
     void on_actionRun_Script_triggered();
@@ -160,17 +164,17 @@ public slots:
 private slots:
     void on_actionAbout_triggered();
     void on_actionIssue_triggered();
+    void documentationClicked();
     void addExtraGraph();
     void addExtraHexdump();
     void addExtraDisassembly();
+    void addExtraDecompiler();
 
     void on_actionRefresh_Panels_triggered();
 
     void on_actionDisasAdd_comment_triggered();
 
     void on_actionDefault_triggered();
-
-    void on_actionFunctionsRename_triggered();
 
     void on_actionNew_triggered();
 
@@ -191,8 +195,6 @@ private slots:
     void on_actionRefresh_contents_triggered();
 
     void on_actionPreferences_triggered();
-
-    void on_actionAnalyze_triggered();
 
     void on_actionImportPDB_triggered();
 
@@ -225,7 +227,6 @@ private:
     QString filename;
     std::unique_ptr<Ui::MainWindow> ui;
     Highlighter *highlighter;
-    AsciiHighlighter *hex_highlighter;
     VisualNavbar *visualNavbar;
     Omnibar *omnibar;
     ProgressIndicator *tasksProgressIndicator;
@@ -236,7 +237,6 @@ private:
 
     QList<CutterDockWidget *> dockWidgets;
     QList<CutterDockWidget *> pluginDocks;
-    DecompilerWidget   *decompilerDock = nullptr;
     OverviewWidget     *overviewDock = nullptr;
     QAction *actionOverview = nullptr;
     EntrypointWidget   *entrypointDock = nullptr;
@@ -260,15 +260,18 @@ private:
     ClassesWidget      *classesDock = nullptr;
     ResourcesWidget    *resourcesDock = nullptr;
     VTablesWidget      *vTablesDock = nullptr;
-    CutterDockWidget        *stackDock = nullptr;
-    CutterDockWidget        *threadsDock = nullptr;
-    CutterDockWidget        *processesDock = nullptr;
-    CutterDockWidget        *registersDock = nullptr;
-    CutterDockWidget        *backtraceDock = nullptr;
-    CutterDockWidget        *memoryMapDock = nullptr;
+    CutterDockWidget   *stackDock = nullptr;
+    CutterDockWidget   *threadsDock = nullptr;
+    CutterDockWidget   *processesDock = nullptr;
+    CutterDockWidget   *registersDock = nullptr;
+    CutterDockWidget   *backtraceDock = nullptr;
+    CutterDockWidget   *memoryMapDock = nullptr;
     NewFileDialog      *newFileDialog = nullptr;
-    CutterDockWidget        *breakpointDock = nullptr;
-    CutterDockWidget        *registerRefsDock = nullptr;
+    CutterDockWidget   *breakpointDock = nullptr;
+    CutterDockWidget   *registerRefsDock = nullptr;
+    R2GraphWidget      *r2GraphDock = nullptr;
+    CallGraphWidget    *callGraphDock = nullptr;
+    CallGraphWidget    *globalCallGraphDock = nullptr;
 
     QMenu *disassemblyContextMenuExtensions = nullptr;
     QMenu *addressableContextMenuExtensions = nullptr;

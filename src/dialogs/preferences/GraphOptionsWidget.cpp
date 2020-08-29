@@ -41,14 +41,20 @@ void GraphOptionsWidget::updateOptionsFromVars()
     ui->maxColsSpinBox->blockSignals(true);
     ui->maxColsSpinBox->setValue(Config()->getGraphBlockMaxChars());
     ui->maxColsSpinBox->blockSignals(false);
+    auto blockSpacing = Config()->getGraphBlockSpacing();
+    ui->horizontalBlockSpacing->setValue(blockSpacing.x());
+    ui->verticalBlockSpacing->setValue(blockSpacing.y());
+    auto edgeSpacing = Config()->getGraphEdgeSpacing();
+    ui->horizontalEdgeSpacing->setValue(edgeSpacing.x());
+    ui->verticalEdgeSpacing->setValue(edgeSpacing.y());
 }
 
 
 void GraphOptionsWidget::triggerOptionsChanged()
 {
-    disconnect(Core(), SIGNAL(graphOptionsChanged()), this, SLOT(updateOptionsFromVars()));
+    disconnect(Core(), &CutterCore::graphOptionsChanged, this, &GraphOptionsWidget::updateOptionsFromVars);
     Core()->triggerGraphOptionsChanged();
-    connect(Core(), SIGNAL(graphOptionsChanged()), this, SLOT(updateOptionsFromVars()));
+    connect(Core(), &CutterCore::graphOptionsChanged, this, &GraphOptionsWidget::updateOptionsFromVars);
 }
 
 void GraphOptionsWidget::on_maxColsSpinBox_valueChanged(int value)

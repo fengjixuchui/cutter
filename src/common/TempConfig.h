@@ -2,6 +2,8 @@
 #ifndef TEMPCONFIG_H
 #define TEMPCONFIG_H
 
+#include "core/CutterCommon.h"
+
 #include <QString>
 #include <QVariant>
 
@@ -22,13 +24,14 @@
  * }
  * \endcode
  */
-class TempConfig
+class CUTTER_EXPORT TempConfig
 {
 public:
     TempConfig() = default;
     ~TempConfig();
 
     TempConfig &set(const QString &key, const QString &value);
+    TempConfig &set(const QString &key, const char *value);
     TempConfig &set(const QString &key, int value);
     TempConfig &set(const QString &key, bool value);
 

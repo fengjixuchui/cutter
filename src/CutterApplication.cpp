@@ -4,6 +4,7 @@
 #include "plugins/PluginManager.h"
 #include "CutterConfig.h"
 #include "common/Decompiler.h"
+#include "common/ResourcePaths.h"
 
 #include <QApplication>
 #include <QFileOpenEvent>
@@ -143,9 +144,6 @@ CutterApplication::CutterApplication(int &argc, char **argv) : QApplication(argc
         mainWindow->openNewFile(clOptions.fileOpenOptions, askOptions);
     }
 
-#ifdef CUTTER_APPVEYOR_R2DEC
-    qputenv("R2DEC_HOME", "radare2\\lib\\plugins\\r2dec-js");
-#endif
 
 #ifdef APPIMAGE
     {
@@ -178,10 +176,13 @@ CutterApplication::CutterApplication(int &argc, char **argv) : QApplication(argc
     }
 #endif
 
+#ifdef CUTTER_APPVEYOR_R2DEC
+    qputenv("R2DEC_HOME", "lib\\plugins\\r2dec-js");
+#endif
 #ifdef Q_OS_WIN
     {
         auto sleighHome = QDir(QCoreApplication::applicationDirPath());
-        sleighHome.cd("radare2/lib/plugins/r2ghidra_sleigh");
+        sleighHome.cd("lib/plugins/r2ghidra_sleigh");
         Core()->setConfig("r2ghidra.sleighhome", sleighHome.absolutePath());
     }
 #endif
@@ -255,7 +256,7 @@ bool CutterApplication::loadTranslations()
             QTranslator *trQtBase = new QTranslator;
             QTranslator *trQt = new QTranslator;
 
-            const QStringList &cutterTrPaths = Config()->getTranslationsDirectories();
+            const QStringList &cutterTrPaths = Cutter::getTranslationsDirectories();
 
             for (const auto &trPath : cutterTrPaths) {
                 if (trCutter && trCutter->load(it, QLatin1String("cutter"), QLatin1String("_"), trPath)) {

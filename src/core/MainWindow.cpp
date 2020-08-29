@@ -2,15 +2,16 @@
 #include "ui_MainWindow.h"
 
 // Common Headers
+#include "common/AnalTask.h"
 #include "common/BugReporting.h"
 #include "common/Highlighter.h"
-#include "common/HexAsciiHighlighter.h"
 #include "common/Helpers.h"
 #include "common/SvgIconEngine.h"
 #include "common/ProgressIndicator.h"
 #include "common/TempConfig.h"
 #include "common/RunScriptTask.h"
 #include "common/PythonManager.h"
+#include "plugins/CutterPlugin.h"
 #include "plugins/PluginManager.h"
 #include "CutterConfig.h"
 #include "CutterApplication.h"
@@ -22,7 +23,6 @@
 #include "dialogs/SaveProjectDialog.h"
 #include "dialogs/CommentsDialog.h"
 #include "dialogs/AboutDialog.h"
-#include "dialogs/RenameDialog.h"
 #include "dialogs/preferences/PreferencesDialog.h"
 #include "dialogs/MapFileDialog.h"
 #include "dialogs/AsyncTaskDialog.h"
@@ -70,6 +70,8 @@
 #include "widgets/HexdumpWidget.h"
 #include "widgets/DecompilerWidget.h"
 #include "widgets/HexWidget.h"
+#include "widgets/R2GraphWidget.h"
+#include "widgets/CallGraph.h"
 
 // Qt Headers
 #include <QApplication>
@@ -141,6 +143,7 @@ void MainWindow::initUI()
     disassemblyContextMenuExtensions = new QMenu(tr("Plugins"), this);
     addressableContextMenuExtensions = new QMenu(tr("Plugins"), this);
 
+    connect(ui->actionExtraDecompiler, &QAction::triggered, this, &MainWindow::addExtraDecompiler);
     connect(ui->actionExtraGraph, &QAction::triggered, this, &MainWindow::addExtraGraph);
     connect(ui->actionExtraDisassembly, &QAction::triggered, this, &MainWindow::addExtraDisassembly);
     connect(ui->actionExtraHexdump, &QAction::triggered, this, &MainWindow::addExtraHexdump);
@@ -165,34 +168,33 @@ void MainWindow::initUI()
 
     // Period goes to command entry
     QShortcut *cmd_shortcut = new QShortcut(QKeySequence(Qt::Key_Period), this);
-    connect(cmd_shortcut, SIGNAL(activated()), consoleDock, SLOT(focusInputLineEdit()));
+    connect(cmd_shortcut, &QShortcut::activated, consoleDock, &ConsoleWidget::focusInputLineEdit);
 
     // G and S goes to goto entry
     QShortcut *goto_shortcut = new QShortcut(QKeySequence(Qt::Key_G), this);
-    connect(goto_shortcut, SIGNAL(activated()), this->omnibar, SLOT(setFocus()));
+    connect(goto_shortcut, &QShortcut::activated, this->omnibar, [this](){ this->omnibar->setFocus(); });
     QShortcut *seek_shortcut = new QShortcut(QKeySequence(Qt::Key_S), this);
-    connect(seek_shortcut, SIGNAL(activated()), this->omnibar, SLOT(setFocus()));
+    connect(seek_shortcut, &QShortcut::activated, this->omnibar, [this](){ this->omnibar->setFocus(); });
     QShortcut *seek_to_func_end_shortcut = new QShortcut(QKeySequence(Qt::Key_Dollar), this);
-    connect(seek_to_func_end_shortcut, SIGNAL(activated()), SLOT(seekToFunctionLastInstruction()));
+    connect(seek_to_func_end_shortcut, &QShortcut::activated, this, &MainWindow::seekToFunctionLastInstruction);
     QShortcut *seek_to_func_start_shortcut = new QShortcut(QKeySequence(Qt::Key_AsciiCircum), this);
-    connect(seek_to_func_start_shortcut, SIGNAL(activated()), SLOT(seekToFunctionStart()));
+    connect(seek_to_func_start_shortcut, &QShortcut::activated, this, &MainWindow::seekToFunctionStart);
 
     QShortcut *refresh_shortcut = new QShortcut(QKeySequence(QKeySequence::Refresh), this);
-    connect(refresh_shortcut, SIGNAL(activated()), this, SLOT(refreshAll()));
+    connect(refresh_shortcut, &QShortcut::activated, this, &MainWindow::refreshAll);
 
-    connect(ui->actionZoomIn, SIGNAL(triggered()), this, SLOT(onZoomIn()));
-    connect(ui->actionZoomOut, SIGNAL(triggered()), this, SLOT(onZoomOut()));
-    connect(ui->actionZoomReset, SIGNAL(triggered()), this, SLOT(onZoomReset()));
+    connect(ui->actionZoomIn, &QAction::triggered, this, &MainWindow::onZoomIn);
+    connect(ui->actionZoomOut, &QAction::triggered, this, &MainWindow::onZoomOut);
+    connect(ui->actionZoomReset, &QAction::triggered, this, &MainWindow::onZoomReset);
 
-    connect(core, SIGNAL(projectSaved(bool, const QString &)), this, SLOT(projectSaved(bool,
-                                                                                       const QString &)));
+    connect(core, &CutterCore::projectSaved, this, &MainWindow::projectSaved);
 
     connect(core, &CutterCore::toggleDebugView, this, &MainWindow::toggleDebugView);
 
-    connect(core, SIGNAL(newMessage(const QString &)),
-            this->consoleDock, SLOT(addOutput(const QString &)));
-    connect(core, SIGNAL(newDebugMessage(const QString &)),
-            this->consoleDock, SLOT(addDebugOutput(const QString &)));
+    connect(core, &CutterCore::newMessage,
+            this->consoleDock, &ConsoleWidget::addOutput);
+    connect(core, &CutterCore::newDebugMessage,
+            this->consoleDock, &ConsoleWidget::addDebugOutput);
 
     connect(core, &CutterCore::showMemoryWidgetRequested,
             this, static_cast<void(MainWindow::*)()>(&MainWindow::showMemoryWidget));
@@ -232,10 +234,24 @@ void MainWindow::initUI()
   
     connect(ui->actionSaveLayout, &QAction::triggered, this, &MainWindow::saveNamedLayout);
     connect(ui->actionManageLayouts, &QAction::triggered, this, &MainWindow::manageLayouts);
+    connect(ui->actionDocumentation, &QAction::triggered, this, &MainWindow::documentationClicked);
 
     /* Setup plugins interfaces */
-    for (auto &plugin : Plugins()->getPlugins()) {
+    const auto &plugins = Plugins()->getPlugins();
+    for (auto &plugin : plugins) {
         plugin->setupInterface(this);
+    }
+
+    // Check if plugins are loaded and display tooltips accordingly
+    ui->menuWindows->setToolTipsVisible(true);
+    if (plugins.empty()) {
+        ui->menuPlugins->menuAction()->setToolTip(
+                tr("No plugins are installed. Check the plugins section on Cutter documentation to learn more."));
+        ui->menuPlugins->setEnabled(false);
+    } else if (ui->menuPlugins->isEmpty()) {
+        ui->menuPlugins->menuAction()->setToolTip(
+                tr("The installed plugins didn't add entries to this menu."));
+        ui->menuPlugins->setEnabled(false);
     }
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
@@ -244,6 +260,10 @@ void MainWindow::initUI()
 
     enableDebugWidgetsMenu(false);
     readSettings();
+
+    // Display tooltip for the Analyze Program action
+    ui->actionAnalyze->setToolTip("Analyze the program using radare2's \"aaa\" command");
+    ui->menuFile->setToolTipsVisible(true);
 }
 
 void MainWindow::initToolBar()
@@ -319,7 +339,7 @@ void MainWindow::initToolBar()
     this->visualNavbar->setMovable(false);
     addToolBarBreak(Qt::TopToolBarArea);
     addToolBar(visualNavbar);
-    QObject::connect(configuration, &Configuration::colorsUpdated, [this]() {
+    QObject::connect(configuration, &Configuration::colorsUpdated, this, [this]() {
         this->visualNavbar->updateGraphicsScene();
     });
     QObject::connect(configuration, &Configuration::interfaceThemeChanged, this, &MainWindow::chooseThemeIcons);
@@ -328,7 +348,6 @@ void MainWindow::initToolBar()
 void MainWindow::initDocks()
 {
     dockWidgets.reserve(20);
-    decompilerDock = new DecompilerWidget(this);
     consoleDock = new ConsoleWidget(this);
 
     overviewDock = new OverviewWidget(this);
@@ -372,7 +391,10 @@ void MainWindow::initDocks()
         segmentsDock = new SegmentsWidget(this),
         symbolsDock = new SymbolsWidget(this),
         vTablesDock = new VTablesWidget(this),
-        zignaturesDock = new ZignaturesWidget(this)
+        zignaturesDock = new ZignaturesWidget(this),
+        r2GraphDock = new R2GraphWidget(this),
+        callGraphDock = new CallGraphWidget(this, false),
+        globalCallGraphDock = new CallGraphWidget(this, true),
     };
 
     auto makeActionList = [this](QList<CutterDockWidget *> docks) {
@@ -393,7 +415,6 @@ void MainWindow::initDocks()
         dashboardDock,
         nullptr,
         functionsDock,
-        decompilerDock,
         overviewDock,
         nullptr,
         searchDock,
@@ -401,7 +422,7 @@ void MainWindow::initDocks()
         typesDock,
         nullptr,
     };
-    ui->menuWindows->insertActions(ui->actionExtraDisassembly, makeActionList(windowDocks));
+    ui->menuWindows->insertActions(ui->actionExtraDecompiler, makeActionList(windowDocks));
     QList<CutterDockWidget *> windowDocks2 = {
         consoleDock,
         commentsDock,
@@ -450,6 +471,12 @@ void MainWindow::addExtraHexdump()
 void MainWindow::addExtraDisassembly()
 {
     auto *extraDock = new DisassemblyWidget(this);
+    addExtraWidget(extraDock);
+}
+
+void MainWindow::addExtraDecompiler()
+{
+    auto *extraDock = new DecompilerWidget(this);
     addExtraWidget(extraDock);
 }
 
@@ -591,6 +618,11 @@ void MainWindow::finalizeOpen()
     // Add fortune message
     core->message("\n" + core->cmdRaw("fo"));
 
+    // hide all docks before showing window to avoid false positive for refreshDeferrer
+    for (auto dockWidget : dockWidgets) {
+        dockWidget->hide();
+    }
+
     QSettings settings;
     auto geometry = settings.value("geometry").toByteArray();
     if (!geometry.isEmpty()) {
@@ -603,37 +635,26 @@ void MainWindow::finalizeOpen()
     Config()->adjustColorThemeDarkness();
     setViewLayout(getViewLayout(LAYOUT_DEFAULT));
 
+
     // Set focus to disasm or graph widget
-
-    // Use for loop to cover cases when main disasm/graph
-    // (MainWindow::disassemblyDock and MainWindow::graphDock)
-    // widgets are invisible but extra ones are visible
-
-    // Graph with function in it has focus priority over DisasmWidget
-    // if there are both graph and disasm.
-    // Otherwise Disasm has focus priority over Graph
-
+    // Graph with function in it has focus priority over DisasmWidget.
     // If there are no graph/disasm widgets focus on MainWindow
 
     setFocus();
     bool graphContainsFunc = false;
     for (auto dockWidget : dockWidgets) {
-        const QString className = dockWidget->metaObject()->className();
         auto graphWidget = qobject_cast<GraphWidget *>(dockWidget);
-        if (graphWidget && !dockWidget->visibleRegion().isNull()) {
+        if (graphWidget && dockWidget->isVisibleToUser()) {
             graphContainsFunc = !graphWidget->getGraphView()->getBlocks().empty();
             if (graphContainsFunc) {
-                dockWidget->widget()->setFocus();
+                dockWidget->raiseMemoryWidget();
                 break;
             }
         }
         auto disasmWidget = qobject_cast<DisassemblyWidget *>(dockWidget);
-        if (disasmWidget && !dockWidget->visibleRegion().isNull()) {
-            if (!graphContainsFunc) {
-                disasmWidget->setFocus();
-            } else {
-                break;
-            }
+        if (disasmWidget && dockWidget->isVisibleToUser()) {
+            disasmWidget->raiseMemoryWidget();
+            // continue looping in case there is a graph wiget
         }
     }
 }
@@ -804,7 +825,6 @@ void MainWindow::restoreDocks()
     splitDockWidget(functionsDock, overviewDock, Qt::Vertical);
 
     // main area
-    tabifyDockWidget(dashboardDock, decompilerDock);
     tabifyDockWidget(dashboardDock, entrypointDock);
     tabifyDockWidget(dashboardDock, flagsDock);
     tabifyDockWidget(dashboardDock, stringsDock);
@@ -823,6 +843,9 @@ void MainWindow::restoreDocks()
     tabifyDockWidget(dashboardDock, memoryMapDock);
     tabifyDockWidget(dashboardDock, breakpointDock);
     tabifyDockWidget(dashboardDock, registerRefsDock);
+    tabifyDockWidget(dashboardDock, r2GraphDock);
+    tabifyDockWidget(dashboardDock, callGraphDock);
+    tabifyDockWidget(dashboardDock, globalCallGraphDock);
     for (const auto &it : dockWidgets) {
         // Check whether or not current widgets is graph, hexdump or disasm
         if (isExtraMemoryWidget(it)) {
@@ -921,13 +944,36 @@ void MainWindow::showMemoryWidget(MemoryWidgetType type)
     memoryDockWidget->raiseMemoryWidget();
 }
 
-QMenu *MainWindow::createShowInMenu(QWidget *parent, RVA address)
+QMenu *MainWindow::createShowInMenu(QWidget *parent, RVA address,  AddressTypeHint addressType)
 {
     QMenu *menu = new QMenu(parent);
+    // Memory dock widgets
     for (auto &dock : dockWidgets) {
         if (auto memoryWidget = qobject_cast<MemoryDockWidget *>(dock)) {
+            if (memoryWidget->getType() == MemoryWidgetType::Graph
+                    || memoryWidget->getType() == MemoryWidgetType::Decompiler)
+            {
+                if (addressType == AddressTypeHint::Data) {
+                    continue;
+                }
+            }
             QAction *action = new QAction(memoryWidget->windowTitle(), menu);
-            connect(action, &QAction::triggered, this, [this, memoryWidget, address]() {
+            connect(action, &QAction::triggered, this, [memoryWidget, address]() {
+                memoryWidget->getSeekable()->seek(address);
+                memoryWidget->raiseMemoryWidget();
+            });
+            menu->addAction(action);
+        }
+    }
+    menu->addSeparator();
+    // Rest of the AddressableDockWidgets that weren't added already
+    for (auto &dock : dockWidgets) {
+        if (auto memoryWidget = qobject_cast<AddressableDockWidget *>(dock)) {
+            if (qobject_cast<MemoryDockWidget *>(dock)) {
+                continue;
+            }
+            QAction *action = new QAction(memoryWidget->windowTitle(), menu);
+            connect(action, &QAction::triggered, this, [memoryWidget, address]() {
                 memoryWidget->getSeekable()->seek(address);
                 memoryWidget->raiseMemoryWidget();
             });
@@ -943,9 +989,11 @@ QMenu *MainWindow::createShowInMenu(QWidget *parent, RVA address)
         menu->addAction(action);
     };
     createAddNewWidgetAction(tr("New disassembly"), MemoryWidgetType::Disassembly);
-    createAddNewWidgetAction(tr("New graph"), MemoryWidgetType::Graph);
+    if (addressType != AddressTypeHint::Data) {
+        createAddNewWidgetAction(tr("New graph"), MemoryWidgetType::Graph);
+    }
     createAddNewWidgetAction(tr("New hexdump"), MemoryWidgetType::Hexdump);
-
+    createAddNewWidgetAction(tr("New Decompiler"), MemoryWidgetType::Decompiler);
     return menu;
 }
 
@@ -1323,6 +1371,7 @@ void MainWindow::setViewLayout(const CutterLayout &layout)
             dock->deserializeViewProperties({}); // call with empty properties to reset the widget
             newDocks.push_back(dock);
         }
+        dock->ignoreVisibilityStatus(true);
     }
 
     if (!isDefault) {
@@ -1345,6 +1394,12 @@ void MainWindow::setViewLayout(const CutterLayout &layout)
             showZenDocks();
         }
     }
+
+    for (auto dock : dockWidgets) {
+        dock->ignoreVisibilityStatus(false);
+    }
+    lastSyncMemoryWidget = nullptr;
+    lastMemoryWidget = nullptr;
 }
 
 void MainWindow::loadLayouts(QSettings &settings)
@@ -1407,14 +1462,6 @@ void MainWindow::on_actionLockUnlock_triggered()
         }
         ui->actionLockUnlock->setIcon(QIcon(":/unlock"));
     }
-}
-
-void MainWindow::on_actionFunctionsRename_triggered()
-{
-    RenameDialog r(this);
-    // Get function based on click position
-    //r->setFunctionName(fcn_name);
-    r.exec();
 }
 
 void MainWindow::on_actionDefault_triggered()
@@ -1538,8 +1585,10 @@ void MainWindow::on_actionRefresh_contents_triggered()
 
 void MainWindow::on_actionPreferences_triggered()
 {
-    auto dialog = new PreferencesDialog(this);
-    dialog->show();
+    if (!findChild<PreferencesDialog*>()) {
+        auto dialog = new PreferencesDialog(this);
+        dialog->show();
+    }
 }
 
 void MainWindow::on_actionTabs_triggered()
@@ -1560,14 +1609,34 @@ void MainWindow::on_actionIssue_triggered()
     openIssue();
 }
 
+void MainWindow::documentationClicked()
+{
+    QDesktopServices::openUrl(QUrl("https://cutter.re/docs/user-docs"));
+}
+
 void MainWindow::on_actionRefresh_Panels_triggered()
 {
     this->refreshAll();
 }
 
+/**
+ * @brief A signal that creates an AsyncTask to re-analyze the current file
+ */
 void MainWindow::on_actionAnalyze_triggered()
 {
-    // TODO: implement this, but do NOT open InitialOptionsDialog!!
+    auto *analTask = new AnalTask();
+    InitialOptions options;
+    options.analCmd = { {"aaa", "Auto analysis"} };
+    analTask->setOptions(options);
+    AsyncTask::Ptr analTaskPtr(analTask);
+
+    auto *taskDialog = new AsyncTaskDialog(analTaskPtr);
+    taskDialog->setInterruptOnClose(true);
+    taskDialog->setAttribute(Qt::WA_DeleteOnClose);
+    taskDialog->show();
+    connect(analTask, &AnalTask::finished, this, &MainWindow::refreshAll);
+
+    Core()->getAsyncTaskManager()->start(analTaskPtr);
 }
 
 void MainWindow::on_actionImportPDB_triggered()

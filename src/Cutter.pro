@@ -3,8 +3,8 @@ TEMPLATE = app
 TARGET = Cutter
 
 CUTTER_VERSION_MAJOR = 1
-CUTTER_VERSION_MINOR = 10
-CUTTER_VERSION_PATCH = 3
+CUTTER_VERSION_MINOR = 11
+CUTTER_VERSION_PATCH = 0
 
 VERSION = $${CUTTER_VERSION_MAJOR}.$${CUTTER_VERSION_MINOR}.$${CUTTER_VERSION_PATCH}
 
@@ -18,7 +18,10 @@ TRANSLATIONS += translations/cutter_ar.ts \
                 translations/cutter_es.ts \
                 translations/cutter_fa.ts \
                 translations/cutter_fr.ts \
+                translations/cutter_he.ts \
+                translations/cutter_hi.ts \
                 translations/cutter_it.ts \
+                translations/cutter_ja.ts \
                 translations/cutter_nl.ts \
                 translations/cutter_pt.ts \
                 translations/cutter_ro.ts \
@@ -56,6 +59,8 @@ equals(CUTTER_APPVEYOR_R2DEC, true)             CONFIG += CUTTER_APPVEYOR_R2DEC
 
 !defined(CUTTER_R2GHIDRA_STATIC, var)           CUTTER_R2GHIDRA_STATIC=false
 equals(CUTTER_R2GHIDRA_STATIC, true)            CONFIG += CUTTER_R2GHIDRA_STATIC
+
+DEFINES += CUTTER_SOURCE_BUILD
 
 CUTTER_ENABLE_CRASH_REPORTS {
     message("Crash report support enabled.")
@@ -107,6 +112,7 @@ macx {
 
 unix:exists(/usr/local/include/libr)|bsd:exists(/usr/local/include/libr) {
     INCLUDEPATH += /usr/local/include/libr
+    INCLUDEPATH += /usr/local/include/libr/sdb
 }
 unix {
     QMAKE_LFLAGS += -rdynamic # Export dynamic symbols for plugins
@@ -161,8 +167,10 @@ CUTTER_ENABLE_PYTHON {
         BINDINGS_INCLUDE_DIRS = "$$[QT_INSTALL_HEADERS]" \
                                 "$$[QT_INSTALL_HEADERS]/QtCore" \
                                 "$$[QT_INSTALL_HEADERS]/QtWidgets" \
-                                "$$[QT_INSTALL_HEADERS]/QtGui" \
-                                "$$R2_INCLUDEPATH"
+                                "$$[QT_INSTALL_HEADERS]/QtGui"
+        for (path, R2_INCLUDEPATH) {
+           BINDINGS_INCLUDE_DIRS += "$$path"
+        }
         for(path, INCLUDEPATH) {
             BINDINGS_INCLUDE_DIRS += $$absolute_path("$$path")
         }
@@ -302,14 +310,11 @@ SOURCES += \
     dialogs/CommentsDialog.cpp \
     dialogs/EditInstructionDialog.cpp \
     dialogs/FlagDialog.cpp \
-    dialogs/RenameDialog.cpp \
     dialogs/RemoteDebugDialog.cpp \
     dialogs/NativeDebugDialog.cpp \
     dialogs/XrefsDialog.cpp \
     core/MainWindow.cpp \
     common/Helpers.cpp \
-    common/HexAsciiHighlighter.cpp \
-    common/HexHighlighter.cpp \
     common/Highlighter.cpp \
     common/MdHighlighter.cpp \
     common/DirectionalComboBox.cpp \
@@ -331,6 +336,7 @@ SOURCES += \
     widgets/StringsWidget.cpp \
     widgets/SymbolsWidget.cpp \
     menus/DisassemblyContextMenu.cpp \
+    menus/DecompilerContextMenu.cpp \
     widgets/DisassemblyWidget.cpp \
     widgets/HexdumpWidget.cpp \
     common/Configuration.cpp \
@@ -427,7 +433,14 @@ SOURCES += \
     common/SettingsUpgrade.cpp \
     dialogs/LayoutManager.cpp \
     common/CutterLayout.cpp \
-    widgets/GraphHorizontalAdapter.cpp
+    widgets/GraphHorizontalAdapter.cpp \
+    common/ResourcePaths.cpp \
+    widgets/CutterGraphView.cpp \
+    widgets/SimpleTextGraphView.cpp \
+    widgets/R2GraphWidget.cpp \
+    widgets/CallGraph.cpp \
+    widgets/AddressableDockWidget.cpp \
+    dialogs/preferences/AnalOptionsWidget.cpp
 
 GRAPHVIZ_SOURCES = \
     widgets/GraphvizLayout.cpp
@@ -447,13 +460,10 @@ HEADERS  += \
     dialogs/CommentsDialog.h \
     dialogs/EditInstructionDialog.h \
     dialogs/FlagDialog.h \
-    dialogs/RenameDialog.h \
     dialogs/RemoteDebugDialog.h \
     dialogs/NativeDebugDialog.h \
     dialogs/XrefsDialog.h \
     common/Helpers.h \
-    common/HexAsciiHighlighter.h \
-    common/HexHighlighter.h \
     core/MainWindow.h \
     common/Highlighter.h \
     common/MdHighlighter.h \
@@ -476,6 +486,7 @@ HEADERS  += \
     widgets/StringsWidget.h \
     widgets/SymbolsWidget.h \
     menus/DisassemblyContextMenu.h \
+    menus/DecompilerContextMenu.h \
     widgets/DisassemblyWidget.h \
     widgets/HexdumpWidget.h \
     common/Configuration.h \
@@ -581,7 +592,14 @@ HEADERS  += \
     common/CutterLayout.h \
     common/BinaryTrees.h \
     common/LinkedListPool.h \
-    widgets/GraphHorizontalAdapter.h
+    widgets/GraphHorizontalAdapter.h \
+    common/ResourcePaths.h \
+    widgets/CutterGraphView.h \
+    widgets/SimpleTextGraphView.h \
+    widgets/R2GraphWidget.h \
+    widgets/CallGraph.h \
+    widgets/AddressableDockWidget.h \
+    dialogs/preferences/AnalOptionsWidget.h
 
 GRAPHVIZ_HEADERS = widgets/GraphvizLayout.h
 
@@ -595,7 +613,6 @@ FORMS    += \
     dialogs/CommentsDialog.ui \
     dialogs/EditInstructionDialog.ui \
     dialogs/FlagDialog.ui \
-    dialogs/RenameDialog.ui \
     dialogs/RemoteDebugDialog.ui \
     dialogs/NativeDebugDialog.ui \
     dialogs/XrefsDialog.ui \
@@ -649,7 +666,9 @@ FORMS    += \
     widgets/ColorPicker.ui \
     dialogs/preferences/ColorThemeEditDialog.ui \
     widgets/ListDockWidget.ui \
-    dialogs/LayoutManager.ui
+    dialogs/LayoutManager.ui \
+    widgets/R2GraphWidget.ui \
+    dialogs/preferences/AnalOptionsWidget.ui
 
 RESOURCES += \
     resources.qrc \

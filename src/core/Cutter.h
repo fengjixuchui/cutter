@@ -23,7 +23,6 @@ class Decompiler;
 class R2Task;
 class R2TaskDialog;
 
-#include "plugins/CutterPlugin.h"
 #include "common/BasicBlockHighlighter.h"
 #include "common/R2Task.h"
 #include "common/Helpers.h"
@@ -33,7 +32,7 @@ class R2TaskDialog;
 
 class RCoreLocked;
 
-class CutterCore: public QObject
+class CUTTER_EXPORT CutterCore: public QObject
 {
     Q_OBJECT
 
@@ -109,6 +108,7 @@ public:
     
     QJsonDocument cmdj(const char *str);
     QJsonDocument cmdj(const QString &str) { return cmdj(str.toUtf8().constData()); }
+    QJsonDocument cmdjAt(const char *str, RVA address);
     QStringList cmdList(const char *str) { return cmd(str).split(QLatin1Char('\n'), CUTTER_QT_SKIP_EMPTY_PARTS); }
     QStringList cmdList(const QString &str) { return cmdList(str.toUtf8().constData()); }
     QString cmdTask(const QString &str);
@@ -143,9 +143,18 @@ public:
     QStringList autocomplete(const QString &cmd, RLinePromptType promptType, size_t limit = 4096);
 
     /* Functions methods */
-    void renameFunction(const QString &oldName, const QString &newName);
+    void renameFunction(const RVA offset, const QString &newName);
     void delFunction(RVA addr);
     void renameFlag(QString old_name, QString new_name);
+    /**
+     * @brief Renames the specified local variable in the function specified by the
+     * address given.
+     * @param newName Specifies the name to which the current name of the variable
+     * should be renamed.
+     * @param oldName Specifies the current name of the function variable.
+     * @param functionAddress Specifies the exact address of the function.
+     */
+    void renameFunctionVariable(QString newName, QString oldName, RVA functionAddress);
 
     /**
      * @param addr
@@ -287,6 +296,8 @@ public:
     QString itoa(ut64 num, int rdx = 16);
 
     /* Config functions */
+    void setConfig(const char *k, const char *v);
+    void setConfig(const QString &k, const char *v);
     void setConfig(const char *k, const QString &v);
     void setConfig(const QString &k, const QString &v) { setConfig(k.toUtf8().constData(), v); }
     void setConfig(const char *k, int v);
@@ -389,11 +400,9 @@ public:
     void stepOverDebug();
     void stepOutDebug();
 
-    void addBreakpoint(QString addr);
     void addBreakpoint(const BreakpointDescription &config);
     void updateBreakpoint(int index, const BreakpointDescription &config);
     void toggleBreakpoint(RVA addr);
-    void toggleBreakpoint(QString addr);
     void delBreakpoint(RVA addr);
     void delAllBreakpoints();
     void enableBreakpoint(RVA addr);
@@ -565,7 +574,17 @@ public:
     QList<QJsonObject> getRegisterRefs(int depth = 6);
     QVector<RegisterRefValueDescription> getRegisterRefValues();
     QList<VariableDescription> getVariables(RVA at);
-
+    /**
+     * @brief Fetches all the writes or reads to the specified local variable 'variableName'
+     * in the function in which the specified offset is a part of.
+     * @param variableName Name of the local variable.
+     * @param findWrites If this is true, then locations at which modification happen to the specified
+     * local variable is fetched. Else, the locations at which the local is variable is read is fetched.
+     * @param offset An offset in the function in which the specified local variable exist.
+     * @return A list of XrefDescriptions that contains details of all the writes or reads that happen to the
+     * variable 'variableName'.
+     */
+    QList<XrefDescription> getXRefsForVariable(QString variableName, bool findWrites, RVA offset);
     QList<XrefDescription> getXRefs(RVA addr, bool to, bool whole_function,
                                     const QString &filterType = QString());
 
@@ -575,7 +594,7 @@ public:
 
     /* Signals related */
     void triggerVarsChanged();
-    void triggerFunctionRenamed(const QString &prevName, const QString &newName);
+    void triggerFunctionRenamed(const RVA offset, const QString &newName);
     void triggerRefreshAll();
     void triggerAsmOptionsChanged();
     void triggerGraphOptionsChanged();
@@ -624,14 +643,14 @@ public:
 signals:
     void refreshAll();
 
-    void functionRenamed(const QString &prev_name, const QString &new_name);
+    void functionRenamed(const RVA offset, const QString &new_name);
     void varsChanged();
     void functionsChanged();
     void flagsChanged();
-    void commentsChanged();
+    void commentsChanged(RVA addr);
     void registersChanged();
     void instructionChanged(RVA offset);
-    void breakpointsChanged();
+    void breakpointsChanged(RVA offset);
     void refreshCodeViews();
     void stackChanged();
     /**
@@ -717,7 +736,7 @@ private:
     QVector<QString> getCutterRCFilePaths() const;
 };
 
-class RCoreLocked
+class CUTTER_EXPORT RCoreLocked
 {
     CutterCore * const core;
 

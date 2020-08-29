@@ -1,14 +1,14 @@
 #ifndef CUTTERWIDGET_H
 #define CUTTERWIDGET_H
 
-#include "CutterCommon.h"
+#include "core/CutterCommon.h"
 #include "common/RefreshDeferrer.h"
 
 #include <QDockWidget>
 
 class MainWindow;
 
-class CutterDockWidget : public QDockWidget
+class CUTTER_EXPORT CutterDockWidget : public QDockWidget
 {
     Q_OBJECT
 
@@ -86,6 +86,14 @@ public:
      * @see CutterDockWidget#serializeViewProprties
      */
     virtual void deserializeViewProperties(const QVariantMap &properties);
+    /**
+     * @brief Ignore visibility status.
+     * Useful for temporary ignoring visibility changes while this information is unreliable.
+     * @param ignored - set to true for enabling ignoring mode
+     */
+    void ignoreVisibilityStatus(bool ignored);
+
+    void raiseMemoryWidget();
 signals:
     void becameVisibleToUser();
     void closed();
@@ -105,6 +113,7 @@ private:
     bool isTransient = false;
 
     bool isVisibleToUserCurrent = false;
+    bool ignoreVisibility = false;
     void updateIsVisibleToUser();
 };
 

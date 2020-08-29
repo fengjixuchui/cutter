@@ -48,13 +48,12 @@ DisassemblyWidget::DisassemblyWidget(MainWindow *main)
     setObjectName(main
                   ? main->getUniqueObjectName(getWidgetType())
                   : getWidgetType());
+    updateWindowTitle();
 
     topOffset = bottomOffset = RVA_INVALID;
     cursorLineOffset = 0;
     cursorCharOffset = 0;
     seekFromCursor = false;
-
-    setWindowTitle(getWindowTitle());
 
     // Instantiate the window layout
     auto *splitter = new QSplitter;
@@ -131,12 +130,12 @@ DisassemblyWidget::DisassemblyWidget(MainWindow *main)
 
     // Set Disas context menu
     mDisasTextEdit->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(mDisasTextEdit, SIGNAL(customContextMenuRequested(const QPoint &)),
-            this, SLOT(showDisasContextMenu(const QPoint &)));
+    connect(mDisasTextEdit, &QWidget::customContextMenuRequested,
+            this, &DisassemblyWidget::showDisasContextMenu);
 
 
-    connect(mDisasScrollArea, SIGNAL(scrollLines(int)), this, SLOT(scrollInstructions(int)));
-    connect(mDisasScrollArea, SIGNAL(disassemblyResized()), this, SLOT(updateMaxLines()));
+    connect(mDisasScrollArea, &DisassemblyScrollArea::scrollLines, this, &DisassemblyWidget::scrollInstructions);
+    connect(mDisasScrollArea, &DisassemblyScrollArea::disassemblyResized, this, &DisassemblyWidget::updateMaxLines);
 
     connectCursorPositionChanged(false);
     connect(mDisasTextEdit->verticalScrollBar(), &QScrollBar::valueChanged, this, [ = ](int value) {
@@ -145,29 +144,25 @@ DisassemblyWidget::DisassemblyWidget(MainWindow *main)
         }
     });
 
-    connect(Core(), SIGNAL(commentsChanged()), this, SLOT(refreshDisasm()));
+    connect(Core(), &CutterCore::commentsChanged, this, [this]() {refreshDisasm();});
     connect(Core(), SIGNAL(flagsChanged()), this, SLOT(refreshDisasm()));
     connect(Core(), SIGNAL(functionsChanged()), this, SLOT(refreshDisasm()));
-    connect(Core(), SIGNAL(functionRenamed(const QString &, const QString &)), this,
-            SLOT(refreshDisasm()));
+    connect(Core(), &CutterCore::functionRenamed, this, [this]() {refreshDisasm();});
     connect(Core(), SIGNAL(varsChanged()), this, SLOT(refreshDisasm()));
     connect(Core(), SIGNAL(asmOptionsChanged()), this, SLOT(refreshDisasm()));
-    connect(Core(), &CutterCore::instructionChanged, this, [this](RVA offset) {
-        if (offset >= topOffset && offset <= bottomOffset) {
-            refreshDisasm();
-        }
-    });
+    connect(Core(), &CutterCore::instructionChanged, this, &DisassemblyWidget::refreshIfInRange);
+    connect(Core(), &CutterCore::breakpointsChanged, this, &DisassemblyWidget::refreshIfInRange);
     connect(Core(), SIGNAL(refreshCodeViews()), this, SLOT(refreshDisasm()));
 
-    connect(Config(), SIGNAL(fontsUpdated()), this, SLOT(fontsUpdatedSlot()));
-    connect(Config(), SIGNAL(colorsUpdated()), this, SLOT(colorsUpdatedSlot()));
+    connect(Config(), &Configuration::fontsUpdated, this, &DisassemblyWidget::fontsUpdatedSlot);
+    connect(Config(), &Configuration::colorsUpdated, this, &DisassemblyWidget::colorsUpdatedSlot);
 
     connect(Core(), &CutterCore::refreshAll, this, [this]() {
         refreshDisasm(seekable->getOffset());
     });
     refreshDisasm(seekable->getOffset());
 
-    connect(mCtxMenu, SIGNAL(copy()), mDisasTextEdit, SLOT(copy()));
+    connect(mCtxMenu, &DisassemblyContextMenu::copy, mDisasTextEdit, &QPlainTextEdit::copy);
 
     mCtxMenu->addSeparator();
     mCtxMenu->addAction(&syncAction);
@@ -248,6 +243,13 @@ QFontMetrics DisassemblyWidget::getFontMetrics()
 QList<DisassemblyLine> DisassemblyWidget::getLines()
 {
     return lines;
+}
+
+void DisassemblyWidget::refreshIfInRange(RVA offset)
+{
+    if (offset >= topOffset && offset <= bottomOffset) {
+        refreshDisasm();
+    }
 }
 
 void DisassemblyWidget::refreshDisasm(RVA offset)
@@ -517,10 +519,10 @@ void DisassemblyWidget::updateCursorPosition()
 void DisassemblyWidget::connectCursorPositionChanged(bool disconnect)
 {
     if (disconnect) {
-        QObject::disconnect(mDisasTextEdit, SIGNAL(cursorPositionChanged()), this,
-                            SLOT(cursorPositionChanged()));
+        QObject::disconnect(mDisasTextEdit, &QPlainTextEdit::cursorPositionChanged,
+                            this, &DisassemblyWidget::cursorPositionChanged);
     } else {
-        connect(mDisasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(cursorPositionChanged()));
+        connect(mDisasTextEdit, &QPlainTextEdit::cursorPositionChanged, this, &DisassemblyWidget::cursorPositionChanged);
     }
 }
 

@@ -27,9 +27,9 @@ AsmOptionsWidget::AsmOptionsWidget(PreferencesDialog *dialog)
         { ui->xrefCheckBox,         "asm.xrefs" },
         { ui->bblineCheckBox,       "asm.bb.line" },
         { ui->varsubCheckBox,       "asm.var.sub" },
-        { ui->varsubOnlyCheckBox,   "asm.var.subonly" },
+        { ui->varsubOnlyCheckBox,   "asm.sub.varonly" },
         { ui->lbytesCheckBox,       "asm.lbytes" },
-        { ui->bytespaceCheckBox,    "asm.bytespace" },
+        { ui->bytespaceCheckBox,    "asm.bytes.space" },
         { ui->bytesCheckBox,        "asm.bytes" },
         { ui->xrefCheckBox,         "asm.xrefs" },
         { ui->indentCheckBox,       "asm.indent" },
@@ -64,7 +64,7 @@ AsmOptionsWidget::AsmOptionsWidget(PreferencesDialog *dialog)
                 &AsmOptionsWidget::asmComboBoxChanged);
     connect(ui->offsetCheckBox, &QCheckBox::toggled, this, &AsmOptionsWidget::offsetCheckBoxToggled);
     connect(ui->relOffsetCheckBox, &QCheckBox::toggled, this, &AsmOptionsWidget::relOffCheckBoxToggled);
-    connect(Core(), SIGNAL(asmOptionsChanged()), this, SLOT(updateAsmOptionsFromVars()));
+    connect(Core(), &CutterCore::asmOptionsChanged, this, &AsmOptionsWidget::updateAsmOptionsFromVars);
     updateAsmOptionsFromVars();
 }
 
@@ -142,9 +142,9 @@ void AsmOptionsWidget::resetToDefault()
 
 void AsmOptionsWidget::triggerAsmOptionsChanged()
 {
-    disconnect(Core(), SIGNAL(asmOptionsChanged()), this, SLOT(updateAsmOptionsFromVars()));
+    disconnect(Core(), &CutterCore::asmOptionsChanged, this, &AsmOptionsWidget::updateAsmOptionsFromVars);
     Core()->triggerAsmOptionsChanged();
-    connect(Core(), SIGNAL(asmOptionsChanged()), this, SLOT(updateAsmOptionsFromVars()));
+    connect(Core(), &CutterCore::asmOptionsChanged, this, &AsmOptionsWidget::updateAsmOptionsFromVars);
 }
 
 void AsmOptionsWidget::on_cmtcolSpinBox_valueChanged(int value)
