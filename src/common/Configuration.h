@@ -114,9 +114,6 @@ public:
 #endif
     QSyntaxHighlighter *createSyntaxHighlighter(QTextDocument *document);
 
-    QString getDirProjects();
-    void setDirProjects(const QString &dir);
-
     QString getRecentFolder();
     void setRecentFolder(const QString &dir);
 
@@ -132,7 +129,7 @@ public:
     QString getColorTheme() const     { return s.value("theme", "cutter").toString(); }
     void setColorTheme(const QString &theme);
     /**
-     * @brief Change current color theme if it doesnt't much native theme's darkness.
+     * @brief Change current color theme if it doesn't much native theme's darkness.
      */
     void adjustColorThemeDarkness();
     int colorThemeDarkness(const QString &colorTheme) const;
@@ -141,7 +138,7 @@ public:
     const QColor getColor(const QString &name) const;
 
     /**
-     * @brief Get the value of a config var either from r2 or settings, depending on the key.
+     * @brief Get the value of a config var either from Rizin or settings, depending on the key.
      */
     QVariant getConfigVar(const QString &key);
     bool getConfigBool(const QString &key);
@@ -149,11 +146,11 @@ public:
     QString getConfigString(const QString &key);
 
     /**
-     * @brief Set the value of a config var either to r2 or settings, depending on the key.
+     * @brief Set the value of a config var either to Rizin or settings, depending on the key.
      */
     void setConfig(const QString &key, const QVariant &value);
     bool isFirstExecution();
-    
+
     /**
      * @return id of the last selected decompiler (see CutterCore::getDecompilerById)
      */
@@ -162,6 +159,9 @@ public:
 
     bool getDecompilerAutoRefreshEnabled();
     void setDecompilerAutoRefreshEnabled(bool enabled);
+
+    void enableDecompilerAnnotationHighlighter(bool useDecompilerHighlighter);
+    bool isDecompilerAnnotationHighlighterEnabled();
 
     // Graph
     int getGraphBlockMaxChars() const
@@ -185,13 +185,38 @@ public:
     QPoint getGraphEdgeSpacing();
 
     /**
+     * @brief Gets whether the entry offset of each block has to be displayed or not
+     * @return true if the entry offset has to be displayed, false otherwise
+     */
+    bool getGraphBlockEntryOffset();
+
+    /**
+     * @brief Enable or disable the displaying of the entry offset in each graph block
+     * @param enabled set this to true for displaying the entry offset in each graph block, false otherwise
+     */
+    void setGraphBlockEntryOffset(bool enabled);
+
+    /**
      * @brief Enable or disable Cutter output redirection.
-     * Output redirection state can only be changed early during Cutter initalization.
+     * Output redirection state can only be changed early during Cutter initialization.
      * Changing it later will have no effect
      * @param enabled set this to false for disabling output redirection
      */
     void setOutputRedirectionEnabled(bool enabled);
     bool getOutputRedirectionEnabled() const;
+
+    /**
+     * @brief Recently opened binaries, as shown in NewFileDialog.
+     */
+    QStringList getRecentFiles() const;
+    void setRecentFiles(const QStringList &list);
+
+    /**
+     * @brief Recently opened projects, as shown in NewFileDialog.
+     */
+    QStringList getRecentProjects() const;
+    void setRecentProjects(const QStringList &list);
+    void addRecentProject(QString file);
 
 public slots:
     void refreshFont();

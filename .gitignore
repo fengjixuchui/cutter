@@ -33,6 +33,10 @@ build*/
 cmake-build-*/
 /src-build/
 
+# Build folders
+Debug
+Release
+
 # QtCreator
 *.autosave
 *.qmlproject.user
@@ -90,3 +94,6 @@ src/out
 
 # astyle backup .orig files
 *.orig
+
+# Gdb's history
+.gdb_history

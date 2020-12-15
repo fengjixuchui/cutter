@@ -8,7 +8,7 @@
 
 #include <QJsonArray>
 
-XrefsDialog::XrefsDialog(MainWindow *main, QWidget *parent, bool hideXrefFrom) :
+XrefsDialog::XrefsDialog(MainWindow *parent, bool hideXrefFrom) :
     QDialog(parent),
     addr(0),
     toModel(this),
@@ -18,8 +18,8 @@ XrefsDialog::XrefsDialog(MainWindow *main, QWidget *parent, bool hideXrefFrom) :
     ui->setupUi(this);
     setWindowFlags(windowFlags() & (~Qt::WindowContextHelpButtonHint));
 
-    ui->toTreeWidget->setMainWindow(main);
-    ui->fromTreeWidget->setMainWindow(main);
+    ui->toTreeWidget->setMainWindow(parent);
+    ui->fromTreeWidget->setMainWindow(parent);
 
     ui->toTreeWidget->setModel(&toModel);
     ui->fromTreeWidget->setModel(&fromModel);
@@ -53,6 +53,11 @@ XrefsDialog::XrefsDialog(MainWindow *main, QWidget *parent, bool hideXrefFrom) :
     connect(ui->toTreeWidget, &QAbstractItemView::doubleClicked, this, &QWidget::close);
     connect(ui->fromTreeWidget, &QAbstractItemView::doubleClicked, this, &QWidget::close);
 
+    connect(Core(), &CutterCore::commentsChanged, this, [this]() {
+        qhelpers::emitColumnChanged(&toModel, XrefModel::COMMENT);
+        qhelpers::emitColumnChanged(&fromModel, XrefModel::COMMENT);
+    });
+
     if (hideXrefFrom) {
         hideXrefFromSection();
     }
@@ -65,7 +70,7 @@ QString XrefsDialog::normalizeAddr(const QString &addr) const
     QString ret = addr;
     if (addr.length() < 10) {
         ret = ret.mid(3).rightJustified(8, QLatin1Char('0'));
-        ret.prepend(QLatin1Literal("0x"));
+        ret.prepend(QStringLiteral("0x"));
     }
     return ret;
 }
@@ -263,6 +268,8 @@ QVariant XrefModel::data(const QModelIndex &index, int role) const
             } else {
                 return QString();
             }
+        case COMMENT:
+            return to ? Core()->getCommentAt(xref.from) : Core()->getCommentAt(xref.to);
         }
         return QVariant();
     case FlagDescriptionRole:
@@ -286,6 +293,8 @@ QVariant XrefModel::headerData(int section, Qt::Orientation orientation, int rol
             return tr("Type");
         case CODE:
             return tr("Code");
+        case COMMENT:
+            return tr("Comment");
         default:
             return QVariant();
         }

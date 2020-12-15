@@ -20,7 +20,6 @@
 #include "dialogs/WelcomeDialog.h"
 #include "dialogs/NewFileDialog.h"
 #include "dialogs/InitialOptionsDialog.h"
-#include "dialogs/SaveProjectDialog.h"
 #include "dialogs/CommentsDialog.h"
 #include "dialogs/AboutDialog.h"
 #include "dialogs/preferences/PreferencesDialog.h"
@@ -74,6 +73,7 @@
 #include "widgets/CallGraph.h"
 
 // Qt Headers
+#include <QActionGroup>
 #include <QApplication>
 #include <QComboBox>
 #include <QCompleter>
@@ -114,6 +114,8 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
+#define PROJECT_FILE_FILTER tr("Rizin Project (*.rzdb)")
+
 template<class T>
 T *getNewInstance(MainWindow *m) { return new T(m); }
 
@@ -124,7 +126,6 @@ MainWindow::MainWindow(QWidget *parent) :
     core(Core()),
     ui(new Ui::MainWindow)
 {
-    panelLock = false;
     tabsOnTop = false;
     configuration = Config();
 
@@ -157,6 +158,8 @@ void MainWindow::initUI()
     widgetTypeToConstructorMap.insert(DisassemblyWidget::getWidgetType(),
                                       getNewInstance<DisassemblyWidget>);
     widgetTypeToConstructorMap.insert(HexdumpWidget::getWidgetType(), getNewInstance<HexdumpWidget>);
+    widgetTypeToConstructorMap.insert(DecompilerWidget::getWidgetType(),
+                                      getNewInstance<DecompilerWidget>);
 
     initToolBar();
     initDocks();
@@ -186,8 +189,6 @@ void MainWindow::initUI()
     connect(ui->actionZoomIn, &QAction::triggered, this, &MainWindow::onZoomIn);
     connect(ui->actionZoomOut, &QAction::triggered, this, &MainWindow::onZoomOut);
     connect(ui->actionZoomReset, &QAction::triggered, this, &MainWindow::onZoomReset);
-
-    connect(core, &CutterCore::projectSaved, this, &MainWindow::projectSaved);
 
     connect(core, &CutterCore::toggleDebugView, this, &MainWindow::toggleDebugView);
 
@@ -231,7 +232,7 @@ void MainWindow::initUI()
         ioModesController.setIOMode(IOModesController::Mode::READ_ONLY);
         setAvailableIOModeOptions();
     });
-  
+
     connect(ui->actionSaveLayout, &QAction::triggered, this, &MainWindow::saveNamedLayout);
     connect(ui->actionManageLayouts, &QAction::triggered, this, &MainWindow::manageLayouts);
     connect(ui->actionDocumentation, &QAction::triggered, this, &MainWindow::documentationClicked);
@@ -254,6 +255,8 @@ void MainWindow::initUI()
         ui->menuPlugins->setEnabled(false);
     }
 
+    connect(ui->actionUnlock, &QAction::toggled, this, [this](bool unlock){ lockDocks(!unlock); });
+
 #if QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
     ui->actionGrouped_dock_dragging->setVisible(false);
 #endif
@@ -262,7 +265,7 @@ void MainWindow::initUI()
     readSettings();
 
     // Display tooltip for the Analyze Program action
-    ui->actionAnalyze->setToolTip("Analyze the program using radare2's \"aaa\" command");
+    ui->actionAnalyze->setToolTip("Analyze the program using Rizin's \"aaa\" command");
     ui->menuFile->setToolTipsVisible(true);
 }
 
@@ -531,7 +534,7 @@ void MainWindow::openNewFile(InitialOptions &options, bool skipOptionsDialog)
     /* Prompt to load filename.r2 script */
     if (options.script.isEmpty()) {
         QString script = QString("%1.r2").arg(this->filename);
-        if (r_file_exists(script.toStdString().data())) {
+        if (rz_file_exists(script.toStdString().data())) {
             QMessageBox mb;
             mb.setWindowTitle(tr("Script loading"));
             mb.setText(tr("Do you want to load the '%1' script?").arg(script));
@@ -600,14 +603,32 @@ void MainWindow::displayInitialOptionsDialog(const InitialOptions &options, bool
     }
 }
 
-void MainWindow::openProject(const QString &project_name)
+bool MainWindow::openProject(const QString &file)
 {
-    QString filename = core->cmdRaw("Pi " + project_name);
-    setFilename(filename.trimmed());
+    RzProjectErr err;
+    RzList *res = rz_list_new();
+    {
+        RzCoreLocked core(Core());
+        err = rz_project_load_file(core, file.toUtf8().constData(), true, res);
+    }
+    if (err != RZ_PROJECT_ERR_SUCCESS) {
+        const char *s = rz_project_err_message(err);
+        QString msg = tr("Failed to open project: %1").arg(QString::fromUtf8(s));
+        RzListIter *it;
+        CutterRListForeach(res, it, const char, s) {
+            msg += "\n" + QString::fromUtf8(s);
+        }
+        QMessageBox::critical(this, tr("Open Project"), msg);
+        rz_list_free(res);
+        return false;
+    }
 
-    core->openProject(project_name);
+    Config()->addRecentProject(file);
 
+    rz_list_free(res);
+    setFilename(file.trimmed());
     finalizeOpen();
+    return true;
 }
 
 void MainWindow::finalizeOpen()
@@ -654,26 +675,62 @@ void MainWindow::finalizeOpen()
         auto disasmWidget = qobject_cast<DisassemblyWidget *>(dockWidget);
         if (disasmWidget && dockWidget->isVisibleToUser()) {
             disasmWidget->raiseMemoryWidget();
-            // continue looping in case there is a graph wiget
+            // continue looping in case there is a graph widget
+        }
+        auto decompilerWidget = qobject_cast<DecompilerWidget *>(dockWidget);
+        if (decompilerWidget && dockWidget->isVisibleToUser()) {
+            decompilerWidget->raiseMemoryWidget();
+            // continue looping in case there is a graph widget
         }
     }
 }
 
-bool MainWindow::saveProject(bool quit)
+RzProjectErr MainWindow::saveProject(bool *canceled)
 {
-    QString projectName = core->getConfig("prj.name");
-    if (projectName.isEmpty()) {
-        return saveProjectAs(quit);
-    } else {
-        core->saveProject(projectName);
-        return true;
+    QString file = core->getConfig("prj.file");
+    if (file.isEmpty()) {
+        return saveProjectAs(canceled);
     }
+    if (canceled) {
+        *canceled = false;
+    }
+    RzProjectErr err = rz_project_save_file(RzCoreLocked(core), file.toUtf8().constData());
+    if (err == RZ_PROJECT_ERR_SUCCESS) {
+        Config()->addRecentProject(file);
+    }
+    return err;
 }
 
-bool MainWindow::saveProjectAs(bool quit)
+RzProjectErr MainWindow::saveProjectAs(bool *canceled)
 {
-    SaveProjectDialog dialog(quit, this);
-    return SaveProjectDialog::Rejected != dialog.exec();
+    QString dir = core->getConfig("prj.file");
+    if (dir.isEmpty()) {
+        dir = QDir(filename).dirName();
+    }
+    QString file = QFileDialog::getSaveFileName(this, tr("Save Project"), dir, PROJECT_FILE_FILTER);
+    if (file.isEmpty()) {
+        if (canceled) {
+            *canceled = true;
+        }
+        return RZ_PROJECT_ERR_SUCCESS;
+    }
+    if (canceled) {
+        *canceled = false;
+    }
+    RzProjectErr err = rz_project_save_file(RzCoreLocked(core), file.toUtf8().constData());
+    if (err == RZ_PROJECT_ERR_SUCCESS) {
+        Config()->addRecentProject(file);
+    }
+    return err;
+}
+
+void MainWindow::showProjectSaveError(RzProjectErr err)
+{
+    if (err == RZ_PROJECT_ERR_SUCCESS) {
+        return;
+    }
+    const char *s = rz_project_err_message(err);
+    QMessageBox::critical(this, tr("Save Project"), tr("Failed to save project: %1").arg(QString::fromUtf8(s)));
 }
 
 void MainWindow::refreshOmniBar(const QStringList &flags)
@@ -706,9 +763,17 @@ void MainWindow::closeEvent(QCloseEvent *event)
         return;
     }
 
-    if (ret == QMessageBox::Save && !saveProject(true)) {
-        event->ignore();
-        return;
+    if (ret == QMessageBox::Save) {
+        bool canceled;
+        RzProjectErr save_err = saveProject(&canceled);
+        if (canceled) {
+            event->ignore();
+            return;
+        } else if (save_err != RZ_PROJECT_ERR_SUCCESS) {
+            event->ignore();
+            showProjectSaveError(save_err);
+            return;
+        }
     }
 
     if (!core->currentlyDebugging) {
@@ -738,8 +803,7 @@ void MainWindow::readSettings()
     QSettings settings;
 
     responsive = settings.value("responsive").toBool();
-    panelLock = settings.value("panelLock").toBool();
-    setPanelLock();
+    lockDocks(settings.value("panelLock").toBool());
     tabsOnTop = settings.value("tabsOnTop").toBool();
     setTabLocation();
     bool dockGroupedDragging = settings.value("docksGroupedDragging", false).toBool();
@@ -753,31 +817,13 @@ void MainWindow::saveSettings()
 {
     QSettings settings;
 
-    settings.setValue("panelLock", panelLock);
+    settings.setValue("panelLock", !ui->actionUnlock->isChecked());
     settings.setValue("tabsOnTop", tabsOnTop);
     settings.setValue("docksGroupedDragging", ui->actionGrouped_dock_dragging->isChecked());
     settings.setValue("geometry", saveGeometry());
 
     layouts[Core()->currentlyDebugging ? LAYOUT_DEBUG : LAYOUT_DEFAULT] = getViewLayout();
     saveLayouts(settings);
-}
-
-
-void MainWindow::setPanelLock()
-{
-    if (panelLock) {
-        for (QDockWidget *dockWidget : findChildren<QDockWidget *>()) {
-            dockWidget->setFeatures(QDockWidget::NoDockWidgetFeatures);
-        }
-
-        ui->actionLock->setChecked(false);
-    } else {
-        for (QDockWidget *dockWidget : findChildren<QDockWidget *>()) {
-            dockWidget->setFeatures(QDockWidget::AllDockWidgetFeatures);
-        }
-
-        ui->actionLock->setChecked(true);
-    }
 }
 
 void MainWindow::setTabLocation()
@@ -796,15 +842,20 @@ void MainWindow::refreshAll()
     core->triggerRefreshAll();
 }
 
-void MainWindow::lockUnlock_Docks(bool what)
+void MainWindow::lockDocks(bool lock)
 {
-    if (what) {
+    if (ui->actionUnlock->isChecked() == lock) {
+        ui->actionUnlock->setChecked(!lock);
+    }
+    if (lock) {
         for (QDockWidget *dockWidget : findChildren<QDockWidget *>()) {
             dockWidget->setFeatures(QDockWidget::NoDockWidgetFeatures);
         }
     } else {
         for (QDockWidget *dockWidget : findChildren<QDockWidget *>()) {
-            dockWidget->setFeatures(QDockWidget::AllDockWidgetFeatures);
+            dockWidget->setFeatures(QDockWidget::DockWidgetClosable |
+                                    QDockWidget::DockWidgetMovable |
+                                    QDockWidget::DockWidgetFloatable);
         }
     }
 
@@ -885,7 +936,8 @@ bool MainWindow::isExtraMemoryWidget(QDockWidget *dock) const
 {
     return qobject_cast<GraphWidget*>(dock) ||
             qobject_cast<HexdumpWidget*>(dock) ||
-            qobject_cast<DisassemblyWidget*>(dock);
+            qobject_cast<DisassemblyWidget*>(dock) ||
+            qobject_cast<DecompilerWidget*>(dock);
 }
 
 MemoryWidgetType MainWindow::getMemoryWidgetTypeToRestore()
@@ -1341,7 +1393,8 @@ void MainWindow::setViewLayout(const CutterLayout &layout)
         docksToCreate = QStringList {
             DisassemblyWidget::getWidgetType(),
             GraphWidget::getWidgetType(),
-            HexdumpWidget::getWidgetType()
+            HexdumpWidget::getWidgetType(),
+            DecompilerWidget::getWidgetType()
         };
     } else {
         docksToCreate = layout.viewProperties.keys();
@@ -1443,26 +1496,6 @@ void MainWindow::saveLayouts(QSettings &settings)
     settings.endArray();
 }
 
-void MainWindow::on_actionLock_triggered()
-{
-    panelLock = !panelLock;
-    setPanelLock();
-}
-
-void MainWindow::on_actionLockUnlock_triggered()
-{
-    if (ui->actionLockUnlock->isChecked()) {
-        for (QDockWidget *dockWidget : findChildren<QDockWidget *>()) {
-            dockWidget->setFeatures(QDockWidget::NoDockWidgetFeatures);
-        }
-        ui->actionLockUnlock->setIcon(QIcon(":/lock"));
-    } else {
-        for (QDockWidget *dockWidget : findChildren<QDockWidget *>()) {
-            dockWidget->setFeatures(QDockWidget::AllDockWidgetFeatures);
-        }
-        ui->actionLockUnlock->setIcon(QIcon(":/unlock"));
-    }
-}
 
 void MainWindow::on_actionDefault_triggered()
 {
@@ -1488,12 +1521,12 @@ void MainWindow::on_actionNew_triggered()
 
 void MainWindow::on_actionSave_triggered()
 {
-    saveProject();
+    showProjectSaveError(saveProject(nullptr));
 }
 
 void MainWindow::on_actionSaveAs_triggered()
 {
-    saveProjectAs();
+    showProjectSaveError(saveProjectAs(nullptr));
 }
 
 void MainWindow::on_actionRun_Script_triggered()
@@ -1504,7 +1537,7 @@ void MainWindow::on_actionRun_Script_triggered()
     dialog.setDirectory(QDir::home());
 
     const QString &fileName = QDir::toNativeSeparators(dialog.getOpenFileName(this,
-                                                                              tr("Select radare2 script")));
+                                                                              tr("Select Rizin script")));
     if (fileName.isEmpty()) // Cancel was pressed
         return;
 
@@ -1681,7 +1714,7 @@ void MainWindow::on_actionExport_as_code_triggered()
     cmdMap[filters.last()] = "pcJ";
     filters << tr("Python array (*.py)");
     cmdMap[filters.last()] = "pcp";
-    filters << tr("Print 'wx' r2 commands (*.r2)");
+    filters << tr("Print 'wx' Rizin commands (*.r2)");
     cmdMap[filters.last()] = "pc*";
     filters << tr("GAS .byte blob (*.asm, *.s)");
     cmdMap[filters.last()] = "pca";
@@ -1730,14 +1763,6 @@ void MainWindow::seekToFunctionLastInstruction()
 void MainWindow::seekToFunctionStart()
 {
     Core()->seek(Core()->getFunctionStart(Core()->getOffset()));
-}
-
-void MainWindow::projectSaved(bool successfully, const QString &name)
-{
-    if (successfully)
-        core->message(tr("Project saved: %1").arg(name));
-    else
-        core->message(tr("Failed to save project: %1").arg(name));
 }
 
 void MainWindow::toggleDebugView()

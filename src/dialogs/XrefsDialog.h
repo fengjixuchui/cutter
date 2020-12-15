@@ -14,7 +14,7 @@ private:
     QList<XrefDescription> xrefs;
     bool to;
 public:
-    enum Columns { OFFSET = 0, TYPE, CODE, COUNT };
+    enum Columns { OFFSET = 0, TYPE, CODE, COMMENT, COUNT };
     static const int FlagDescriptionRole = Qt::UserRole;
 
     XrefModel(QObject *parent = nullptr);
@@ -44,7 +44,7 @@ class XrefsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit XrefsDialog(MainWindow *main, QWidget *parent, bool hideXrefFrom=false);
+    explicit XrefsDialog(MainWindow *parent, bool hideXrefFrom=false);
     ~XrefsDialog();
 
     void fillRefsForAddress(RVA addr, QString name, bool whole_function);

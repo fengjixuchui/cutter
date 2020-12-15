@@ -5,7 +5,7 @@
 #ifndef CUTTERCORE_H
 #define CUTTERCORE_H
 
-#include "r_core.h"
+#include "rz_core.h"
 #include <QString>
 
 // Workaround for compile errors on Windows
@@ -14,7 +14,7 @@
 #undef max
 #endif // Q_OS_WIN
 
-// radare2 list iteration macros
+// Rizin list iteration macros
 #define CutterRListForeach(list, it, type, x) \
     if (list) for (it = list->head; it && ((x=static_cast<type*>(it->data))); it = it->n)
 
@@ -62,9 +62,12 @@ inline QString RHexString(RVA size)
 #endif
 
 
-#if defined(__has_cpp_attribute) && __has_cpp_attribute(deprecated)
-#define CUTTER_DEPRECATED(msg) [[deprecated(msg)]]
-#else
+#if defined(__has_cpp_attribute)
+    #if __has_cpp_attribute(deprecated)
+        #define CUTTER_DEPRECATED(msg) [[deprecated(msg)]]
+    #endif
+#endif
+#if !defined(CUTTER_DEPRECATED)
 #define CUTTER_DEPRECATED(msg)
 #endif
 

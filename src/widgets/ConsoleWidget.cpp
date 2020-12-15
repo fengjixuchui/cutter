@@ -373,7 +373,7 @@ void ConsoleWidget::updateCompletion()
     }
 
     auto current = ui->r2InputLineEdit->text();
-    auto completions = Core()->autocomplete(current, R_LINE_PROMPT_DEFAULT);
+    auto completions = Core()->autocomplete(current, RZ_LINE_PROMPT_DEFAULT);
     int lastSpace = current.lastIndexOf(' ');
     if (lastSpace >= 0) {
         current = current.left(lastSpace + 1);
@@ -433,6 +433,11 @@ void ConsoleWidget::processQueuedOutput()
         scrollOutputToEnd();
     }
 }
+
+// Haiku doesn't have O_ASYNC
+#ifdef Q_OS_HAIKU
+#define O_ASYNC O_NONBLOCK
+#endif
 
 void ConsoleWidget::redirectOutput()
 {

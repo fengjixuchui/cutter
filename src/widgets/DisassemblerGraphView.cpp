@@ -41,16 +41,16 @@ DisassemblerGraphView::DisassemblerGraphView(QWidget *parent, CutterSeekable *se
     highlight_token = nullptr;
     auto *layout = new QVBoxLayout(this);
     // Signals that require a refresh all
-    connect(Core(), SIGNAL(refreshAll()), this, SLOT(refreshView()));
+    connect(Core(), &CutterCore::refreshAll, this, &DisassemblerGraphView::refreshView);
     connect(Core(), &CutterCore::commentsChanged, this, &DisassemblerGraphView::refreshView);
     connect(Core(), &CutterCore::functionRenamed, this, &DisassemblerGraphView::refreshView);
-    connect(Core(), SIGNAL(flagsChanged()), this, SLOT(refreshView()));
-    connect(Core(), SIGNAL(varsChanged()), this, SLOT(refreshView()));
-    connect(Core(), SIGNAL(instructionChanged(RVA)), this, SLOT(refreshView()));
+    connect(Core(), &CutterCore::flagsChanged, this, &DisassemblerGraphView::refreshView);
+    connect(Core(), &CutterCore::varsChanged, this, &DisassemblerGraphView::refreshView);
+    connect(Core(), &CutterCore::instructionChanged, this, &DisassemblerGraphView::refreshView);
     connect(Core(), &CutterCore::breakpointsChanged, this, &DisassemblerGraphView::refreshView);
-    connect(Core(), SIGNAL(functionsChanged()), this, SLOT(refreshView()));
-    connect(Core(), SIGNAL(asmOptionsChanged()), this, SLOT(refreshView()));
-    connect(Core(), SIGNAL(refreshCodeViews()), this, SLOT(refreshView()));
+    connect(Core(), &CutterCore::functionsChanged, this, &DisassemblerGraphView::refreshView);
+    connect(Core(), &CutterCore::asmOptionsChanged, this, &DisassemblerGraphView::refreshView);
+    connect(Core(), &CutterCore::refreshCodeViews, this, &DisassemblerGraphView::refreshView);
 
     connectSeekChanged(false);
 
@@ -177,7 +177,7 @@ void DisassemblerGraphView::loadCurrentGraph()
     .set("asm.lines.fcn", false);
 
     QJsonArray functions;
-    RAnalFunction *fcn = Core()->functionIn(seekable->getOffset());
+    RzAnalysisFunction *fcn = Core()->functionIn(seekable->getOffset());
     if (fcn) {
         currentFcnAddr = fcn->addr;
         QJsonDocument functionsDoc = Core()->cmdj("agJ " + RAddressString(fcn->addr));
@@ -235,6 +235,11 @@ void DisassemblerGraphView::loadCurrentGraph()
         GraphBlock gb;
         gb.entry = block_entry;
         db.entry = block_entry;
+        if (Config()->getGraphBlockEntryOffset()) {
+            // QColor(0,0,0,0) is transparent
+            db.header_text = Text("[" + RAddressString(db.entry) + "]", ConfigColor("offset"),
+                                  QColor(0, 0, 0, 0));
+        }
         db.true_path = RVA_INVALID;
         db.false_path = RVA_INVALID;
         if (block_fail) {
@@ -435,7 +440,7 @@ void DisassemblerGraphView::drawBlock(QPainter &p, GraphView::GraphBlock &block,
 
                 qreal highlightWidth = tokenWidth;
                 if (charWidth * 3 + widthBefore + tokenWidth >= block.width - (10 + padding)) {
-                    highlightWidth = block.width - widthBefore - (10 +  2 * padding);
+                    highlightWidth = block.width - widthBefore - (10 + 2 * padding);
                 }
 
                 QColor selectionColor = ConfigColor("wordHighlight");
@@ -536,8 +541,8 @@ RVA DisassemblerGraphView::getAddrForMouseEvent(GraphBlock &block, QPoint *point
     int text_point_y = point->y() - off_y;
     int mouse_row = text_point_y / charHeight;
 
-    int cur_row = static_cast<int>(db.header_text.lines.size());
-    if (mouse_row < cur_row) {
+    // If mouse coordinate is in header region or margin above
+    if (mouse_row < 0) {
         return db.entry;
     }
 
@@ -561,10 +566,11 @@ DisassemblerGraphView::Instr *DisassemblerGraphView::getInstrForMouseEvent(
     int text_point_y = point->y() - off_y;
     int mouse_row = text_point_y / charHeight;
 
-    int cur_row = static_cast<int>(db.header_text.lines.size());
+    // Row in actual text
+    int cur_row = 0;
 
     for (Instr &instr : db.instrs) {
-        if (mouse_row < cur_row + (int)instr.text.lines.size()) {
+        if (mouse_row < cur_row + (int) instr.text.lines.size()) {
             return &instr;
         }
         cur_row += instr.text.lines.size();

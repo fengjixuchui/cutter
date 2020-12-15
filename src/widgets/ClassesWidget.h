@@ -98,7 +98,7 @@ private:
     /**
      * @brief List entry below a class
      *
-     * This roughly corresponds to attributes of r2 anal classes, which means it is not an attribute in the sense of
+     * This roughly corresponds to attributes of Rizin analysis classes, which means it is not an attribute in the sense of
      * a class member variable, but any kind of sub-info associated with the class.
      * This struct in particular is used to provide a model for the list entries below a class.
      */
@@ -193,14 +193,14 @@ private slots:
     void refreshClasses();
 
 private:
-    enum class Source { BIN, ANAL };
+    enum class Source { BIN, ANALYSIS };
 
     Source getSource();
 
     std::unique_ptr<Ui::ClassesWidget> ui;
 
     BinClassesModel *bin_model = nullptr;
-    AnalClassesModel *anal_model = nullptr;
+    AnalClassesModel *analysis_model = nullptr;
     ClassesSortFilterProxyModel *proxy_model;
 };
 

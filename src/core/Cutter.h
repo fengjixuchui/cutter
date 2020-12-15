@@ -28,15 +28,17 @@ class R2TaskDialog;
 #include "common/Helpers.h"
 #include "dialogs/R2TaskDialog.h"
 
+#include <rz_project.h>
+
 #define Core() (CutterCore::instance())
 
-class RCoreLocked;
+class RzCoreLocked;
 
 class CUTTER_EXPORT CutterCore: public QObject
 {
     Q_OBJECT
 
-    friend class RCoreLocked;
+    friend class RzCoreLocked;
     friend class R2Task;
 
 public:
@@ -56,7 +58,7 @@ public:
     /* Core functions (commands) */
     static QString sanitizeStringForCommand(QString s);
     /**
-     * @brief send a command to radare2
+     * @brief send a command to Rizin
      * @param str the command you want to execute
      * @return command output
      * @note if you want to seek to an address, you should use CutterCore::seek.
@@ -64,7 +66,7 @@ public:
     QString cmd(const char *str);
     QString cmd(const QString &str) { return cmd(str.toUtf8().constData()); }
     /**
-     * @brief send a command to radare2 asynchronously
+     * @brief send a command to Rizin asynchronously
      * @param str the command you want to execute
      * @param task a shared pointer that will be returned with the R2 command task
      * @note connect to the &R2Task::finished signal to add your own logic once
@@ -77,7 +79,7 @@ public:
     bool asyncCmd(const QString &str, QSharedPointer<R2Task> &task) { return asyncCmd(str.toUtf8().constData(), task); }
 
     /**
-     * @brief Execute a radare2 command \a cmd.  By nature, the API
+     * @brief Execute a Rizin command \a cmd.  By nature, the API
      * is executing raw commands, and thus ignores multiple commands and overcome command injections.
      * @param cmd - a raw command to execute. Passing multiple commands (e.g "px 5; pd 7 && pdf") will result in them treated as arguments to first command.
      * @return the output of the command
@@ -90,9 +92,9 @@ public:
     QString cmdRaw(const QString &cmd) { return cmdRaw(cmd.toUtf8().constData()); };
 
     /**
-     * @brief Execute a radare2 command \a cmd at \a address. The function will preform a silent seek to the address
+     * @brief Execute a Rizin command \a cmd at \a address. The function will preform a silent seek to the address
      * without triggering the seekChanged event nor adding new entries to the seek history. By nature, the
-     * API is executing a single command without going through radare2 shell, and thus ignores multiple commands 
+     * API is executing a single command without going through Rizin shell, and thus ignores multiple commands 
      * and tries to overcome command injections.
      * @param cmd - a raw command to execute. If multiple commands will be passed (e.g "px 5; pd 7 && pdf") then
      * only the first command will be executed.
@@ -114,14 +116,14 @@ public:
     QString cmdTask(const QString &str);
     QJsonDocument cmdjTask(const QString &str);
     /**
-     * @brief send a command to radare2 and check for ESIL errors
+     * @brief send a command to Rizin and check for ESIL errors
      * @param command the command you want to execute
      * @note If you want to seek to an address, you should use CutterCore::seek.
      */
     void cmdEsil(const char *command);
     void cmdEsil(const QString &command) { cmdEsil(command.toUtf8().constData()); }
     /**
-     * @brief send a command to radare2 and check for ESIL errors
+     * @brief send a command to Rizin and check for ESIL errors
      * @param command the command you want to execute
      * @param task a shared pointer that will be returned with the R2 command task
      * @note connect to the &R2Task::finished signal to add your own logic once
@@ -140,7 +142,7 @@ public:
         return parseJson(res, cmd.isNull() ? nullptr : cmd.toLocal8Bit().constData());
     }
 
-    QStringList autocomplete(const QString &cmd, RLinePromptType promptType, size_t limit = 4096);
+    QStringList autocomplete(const QString &cmd, RzLinePromptType promptType, size_t limit = 4096);
 
     /* Functions methods */
     void renameFunction(const RVA offset, const QString &newName);
@@ -160,13 +162,13 @@ public:
      * @param addr
      * @return a function that contains addr or nullptr
      */
-    RAnalFunction *functionIn(ut64 addr);
+    RzAnalysisFunction *functionIn(ut64 addr);
 
     /**
      * @param addr
      * @return the function that has its entrypoint at addr or nullptr
      */
-    RAnalFunction *functionAt(ut64 addr);
+    RzAnalysisFunction *functionAt(ut64 addr);
 
     RVA getFunctionStart(RVA addr);
     RVA getFunctionEnd(RVA addr);
@@ -236,7 +238,7 @@ public:
 
     /**
      * @brief Changes immediate displacement to structure offset
-     * This function makes use of the "aht" command of r2 to apply structure
+     * This function makes use of the "aht" command of Rizin to apply structure
      * offset to the immediate displacement used in the given instruction
      * \param structureOffset The name of struct which will be applied
      * \param offset The address of the instruction where the struct will be applied
@@ -256,7 +258,7 @@ public:
     void setAnalMethod(const QString &cls, const AnalMethodDescription &meth);
 
     /* File related methods */
-    bool loadFile(QString path, ut64 baddr = 0LL, ut64 mapaddr = 0LL, int perms = R_PERM_R,
+    bool loadFile(QString path, ut64 baddr = 0LL, ut64 mapaddr = 0LL, int perms = RZ_PERM_R,
                   int va = 0, bool loadbin = false, const QString &forceBinPlugin = QString());
     bool tryFile(QString path, bool rw);
     bool mapFile(QString path, RVA mapaddr);
@@ -473,18 +475,11 @@ public:
     QStringList getAsmPluginNames();
     QStringList getAnalPluginNames();
 
-    /* Projects */
-    QStringList getProjectNames();
-    void openProject(const QString &name);
-    void saveProject(const QString &name);
-    void deleteProject(const QString &name);
-    static bool isProjectNameValid(const QString &name);
-
     /* Widgets */
-    QList<RBinPluginDescription> getRBinPluginDescriptions(const QString &type = QString());
-    QList<RIOPluginDescription> getRIOPluginDescriptions();
-    QList<RCorePluginDescription> getRCorePluginDescriptions();
-    QList<RAsmPluginDescription> getRAsmPluginDescriptions();
+    QList<RzBinPluginDescription> getRBinPluginDescriptions(const QString &type = QString());
+    QList<RzIOPluginDescription> getRIOPluginDescriptions();
+    QList<RzCorePluginDescription> getRCorePluginDescriptions();
+    QList<RzAsmPluginDescription> getRAsmPluginDescriptions();
     QList<FunctionDescription> getAllFunctions();
     QList<ImportDescription> getAllImports();
     QList<ExportDescription> getAllExports();
@@ -545,10 +540,10 @@ public:
 
     /**
      * @brief Adds new types
-     * It first uses the r_parse_c_string() function from radare2 API to parse the
+     * It first uses the rz_parse_c_string() function from Rizin API to parse the
      * supplied C file (in the form of a string). If there were errors, they are displayed.
-     * If there were no errors, it uses sdb_query_lines() function from radare2 API
-     * to save the parsed types returned by r_parse_c_string()
+     * If there were no errors, it uses sdb_query_lines() function from Rizin API
+     * to save the parsed types returned by rz_parse_c_string()
      * \param str Contains the definition of the data types
      * \return returns an empty QString if there was no error, else returns the error
      */
@@ -603,7 +598,7 @@ public:
 
     QStringList getSectionList();
 
-    RCoreLocked core();
+    RzCoreLocked core();
 
     static QString ansiEscapeToHtml(const QString &text);
     BasicBlockHighlighter *getBBHighlighter();
@@ -629,7 +624,7 @@ public:
 
     /**
      * @brief Enable or disable Write mode. When the file is opened in write mode, any changes to it will be immediately
-     * committed to the file on disk, thus modify the file. This function wrap radare2 function which re-open the file with
+     * committed to the file on disk, thus modify the file. This function wrap Rizin function which re-open the file with
      * the desired permissions.
      * @param enabled
      */
@@ -673,8 +668,6 @@ signals:
 
     void attachedRemote(bool successfully);
 
-    void projectSaved(bool successfully, const QString &name);
-
     void ioCacheChanged(bool newval);
     void writeModeChanged(bool newval);
     void ioModeChanged();
@@ -695,7 +688,7 @@ signals:
     void graphOptionsChanged();
 
     /**
-     * @brief seekChanged is emitted each time radare2 seek value is modified
+     * @brief seekChanged is emitted each time Rizin's seek value is modified
      * @param offset
      */
     void seekChanged(RVA offset);
@@ -708,14 +701,16 @@ signals:
     void showMemoryWidgetRequested();
 
 private:
-    QString notes;
-
     /**
-     * Internal reference to the RCore.
+     * Internal reference to the RzCore.
      * NEVER use this directly! Always use the CORE_LOCK(); macro and access it like core->...
      */
-    RCore *core_ = nullptr;
+    RzCore *core_ = nullptr;
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     QMutex coreMutex;
+#else
+    QRecursiveMutex coreMutex;
+#endif
     int coreLockDepth = 0;
     void *coreBed = nullptr;
 
@@ -736,18 +731,18 @@ private:
     QVector<QString> getCutterRCFilePaths() const;
 };
 
-class CUTTER_EXPORT RCoreLocked
+class CUTTER_EXPORT RzCoreLocked
 {
     CutterCore * const core;
 
 public:
-    explicit RCoreLocked(CutterCore *core);
-    RCoreLocked(const RCoreLocked &) = delete;
-    RCoreLocked &operator=(const RCoreLocked &) = delete;
-    RCoreLocked(RCoreLocked &&);
-    ~RCoreLocked();
-    operator RCore *() const;
-    RCore *operator->() const;
+    explicit RzCoreLocked(CutterCore *core);
+    RzCoreLocked(const RzCoreLocked &) = delete;
+    RzCoreLocked &operator=(const RzCoreLocked &) = delete;
+    RzCoreLocked(RzCoreLocked &&);
+    ~RzCoreLocked();
+    operator RzCore *() const;
+    RzCore *operator->() const;
 };
 
 #endif // CUTTER_H

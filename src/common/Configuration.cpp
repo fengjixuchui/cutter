@@ -122,7 +122,7 @@ static const QHash<QString, QVariant> asmOptions = {
     { "asm.ucase",          false },
     { "asm.bb.line",        false },
     { "asm.capitalize",     false },
-    { "asm.var.sub",        true },
+    { "asm.sub.var",        true },
     { "asm.sub.varonly",    true },
     { "asm.tabs",           8 },
     { "asm.tabs.off",       5 },
@@ -167,22 +167,6 @@ void Configuration::loadInitial()
 #ifdef CUTTER_ENABLE_KSYNTAXHIGHLIGHTING
     kSyntaxHighlightingRepository = new KSyntaxHighlighting::Repository();
 #endif
-}
-
-QString Configuration::getDirProjects()
-{
-    auto projectsDir = s.value("dir.projects").toString();
-    if (projectsDir.isEmpty()) {
-        projectsDir = Core()->getConfig("dir.projects");
-        setDirProjects(projectsDir);
-    }
-
-    return QDir::toNativeSeparators(projectsDir);
-}
-
-void Configuration::setDirProjects(const QString &dir)
-{
-    s.setValue("dir.projects", QDir::toNativeSeparators(dir));
 }
 
 QString Configuration::getRecentFolder()
@@ -633,7 +617,7 @@ QString Configuration::getConfigString(const QString &key)
 
 /**
  * @brief Configuration::setConfig
- * Set radare2 configuration value (e.g. "asm.lines")
+ * Set Rizin configuration value (e.g. "asm.lines")
  * @param key
  * @param value
  */
@@ -724,6 +708,17 @@ void Configuration::setDecompilerAutoRefreshEnabled(bool enabled)
     s.setValue("decompilerAutoRefresh", enabled);
 }
 
+void Configuration::enableDecompilerAnnotationHighlighter(bool useDecompilerHighlighter)
+{
+    s.setValue("decompilerAnnotationHighlighter", useDecompilerHighlighter);
+    emit colorsUpdated();
+}
+
+bool Configuration::isDecompilerAnnotationHighlighterEnabled()
+{
+    return s.value("decompilerAnnotationHighlighter", true).value<bool>();
+}
+
 bool Configuration::getBitmapTransparentState()
 {
     return s.value("bitmapGraphExportTransparency", false).value<bool>();
@@ -768,4 +763,42 @@ void Configuration::setOutputRedirectionEnabled(bool enabled)
 bool Configuration::getOutputRedirectionEnabled() const
 {
     return outputRedirectEnabled;
+}
+
+bool Configuration::getGraphBlockEntryOffset()
+{
+    return s.value("graphBlockEntryOffset", true).value<bool>();
+}
+
+void Configuration::setGraphBlockEntryOffset(bool enabled)
+{
+    s.setValue("graphBlockEntryOffset", enabled);
+}
+
+QStringList Configuration::getRecentFiles() const
+{
+    return s.value("recentFileList").toStringList();
+}
+
+void Configuration::setRecentFiles(const QStringList &list)
+{
+    s.setValue("recentFileList", list);
+}
+
+QStringList Configuration::getRecentProjects() const
+{
+    return s.value("recentProjectsList").toStringList();
+}
+
+void Configuration::setRecentProjects(const QStringList &list)
+{
+    s.setValue("recentProjectsList", list);
+}
+
+void Configuration::addRecentProject(QString file)
+{
+    QStringList files = getRecentProjects();
+    files.removeAll(file);
+    files.prepend(file);
+    setRecentProjects(files);
 }

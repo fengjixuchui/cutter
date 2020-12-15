@@ -65,9 +65,9 @@ InitialOptionsDialog::InitialOptionsDialog(MainWindow *main):
         { { "aaft", tr("Type and Argument matching analysis") }, new QCheckBox(), false },
         { { "aaT", tr("Analyze code after trap-sleds") }, new QCheckBox(), false },
         { { "aap", tr("Analyze function preludes") }, new QCheckBox(), false },
-        { { "e! anal.jmp.tbl", tr("Analyze jump tables in switch statements") }, new QCheckBox(), false },
-        { { "e! anal.pushret", tr("Analyze PUSH+RET as JMP") },  new QCheckBox(), false },
-        { { "e! anal.hasnext", tr("Continue analysis after each function") }, new QCheckBox(), false }};
+        { { "e! analysis.jmp.tbl", tr("Analyze jump tables in switch statements") }, new QCheckBox(), false },
+        { { "e! analysis.pushret", tr("Analyze PUSH+RET as JMP") },  new QCheckBox(), false },
+        { { "e! analysis.hasnext", tr("Continue analysis after each function") }, new QCheckBox(), false }};
 
     // Per each checkbox, set a tooltip desccribing it
     AnalysisCommands item;
@@ -106,7 +106,7 @@ void InitialOptionsDialog::updateCPUComboBox()
     QString arch = getSelectedArch();
     QStringList cpus;
     if (!arch.isEmpty()) {
-        auto pluginDescr = std::find_if(asmPlugins.begin(), asmPlugins.end(), [&](const RAsmPluginDescription &plugin) {
+        auto pluginDescr = std::find_if(asmPlugins.begin(), asmPlugins.end(), [&](const RzAsmPluginDescription &plugin) {
             return plugin.name == arch;
         });
         if (pluginDescr != asmPlugins.end()) {
@@ -269,7 +269,7 @@ void InitialOptionsDialog::setupAndStartAnalysis(/*int level, QList<QString> adv
     options.loadBinInfo = !ui->binCheckBox->isChecked();
     QVariant forceBinPluginData = ui->formatComboBox->currentData();
     if (!forceBinPluginData.isNull()) {
-        RBinPluginDescription pluginDesc = forceBinPluginData.value<RBinPluginDescription>();
+        RzBinPluginDescription pluginDesc = forceBinPluginData.value<RzBinPluginDescription>();
         options.forceBinPlugin = pluginDesc.name;
     }
     options.demangle = ui->demangleCheckBox->isChecked();
@@ -426,7 +426,7 @@ void InitialOptionsDialog::updateScriptLayout()
 void InitialOptionsDialog::on_scriptSelectButton_clicked()
 {
     QFileDialog dialog(this);
-    dialog.setWindowTitle(tr("Select radare2 script file"));
+    dialog.setWindowTitle(tr("Select Rizin script file"));
     dialog.setNameFilters({ tr("Script file (*.r2)"), tr("All files (*)") });
 
     if (!dialog.exec()) {

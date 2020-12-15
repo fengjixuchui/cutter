@@ -27,6 +27,7 @@ protected:
 public:
     explicit DecompilerWidget(MainWindow *main);
     ~DecompilerWidget();
+    static QString getWidgetType();
 public slots:
     void showDecompilerContextMenu(const QPoint &pt);
 
@@ -53,14 +54,15 @@ private slots:
      *     - Auto-refresh is disabled.
      */
     void seekChanged();
-    void decompilationFinished(RAnnotatedCode *code);
+    void decompilationFinished(RzAnnotatedCode *code);
 
 private:
     std::unique_ptr<Ui::DecompilerWidget> ui;
 
     RefreshDeferrer *refreshDeferrer;
 
-    QSyntaxHighlighter *syntaxHighlighter;
+    bool usingAnnotationBasedHighlighting = false;
+    std::unique_ptr<QSyntaxHighlighter> syntaxHighlighter;
     bool decompilerSelectionEnabled;
 
     /**
@@ -74,7 +76,7 @@ private:
     int scrollerVertical;
     RVA previousFunctionAddr;
     RVA decompiledFunctionAddr;
-    std::unique_ptr<RAnnotatedCode, void (*)(RAnnotatedCode *)> code;
+    std::unique_ptr<RzAnnotatedCode, void (*)(RzAnnotatedCode *)> code;
 
     /**
      * Specifies the lowest offset of instructions among all the instructions in the decompiled function.
@@ -181,17 +183,17 @@ private:
     void highlightBreakpoints();
     /**
      * @brief Finds the earliest offset and breakpoints within the specified range [startPos, endPos]
-     * in the specified RAnnotatedCode.
+     * in the specified RzAnnotatedCode.
      *
      * This function is supposed to be used for finding the earliest offset and breakpoints within the specified range
      * [startPos, endPos]. This will set the value of the variables 'RVA firstOffsetInLine' and 'QVector<RVA> availableBreakpoints' in
      * the context menu.
      *
-     * @param codeDecompiled - A reference to the RAnnotatedCode for the function that is decompiled.
+     * @param codeDecompiled - A reference to the RzAnnotatedCode for the function that is decompiled.
      * @param startPos - Position of the start of the range(inclusive).
      * @param endPos - Position of the end of the range(inclusive).
      */
-    void gatherBreakpointInfo(RAnnotatedCode &codeDecompiled, size_t startPos, size_t endPos);
+    void gatherBreakpointInfo(RzAnnotatedCode &codeDecompiled, size_t startPos, size_t endPos);
     /**
      * @brief Finds the offset that's closest to the specified position in the decompiled code.
      *
@@ -232,6 +234,10 @@ private:
      * @return True if the specified is a part of the decompiled function, False otherwise.
      */
     bool addressInRange(RVA addr);
+
+    void setCode(RzAnnotatedCode *code);
+
+    void setHighlighter(bool annotationBasedHighlighter);
 };
 
 #endif // DECOMPILERWIDGET_H

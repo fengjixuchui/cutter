@@ -22,81 +22,81 @@ void Colors::colorizeAssembly(RichTextPainter::List &list, QString opcode, ut64 
 }
 
 // Temporary solution
-// Copied from R_API const char* r_print_color_op_type(RPrint *p, ut64 anal_type) {
+// Copied from RZ_API const char* r_print_color_op_type(RPrint *p, ut64 analysis_type) {
 QString Colors::getColor(ut64 type)
 {
-    switch (type & R_ANAL_OP_TYPE_MASK) {
-    case R_ANAL_OP_TYPE_NOP:
+    switch (type & RZ_ANALYSIS_OP_TYPE_MASK) {
+    case RZ_ANALYSIS_OP_TYPE_NOP:
         return "nop";
-    case R_ANAL_OP_TYPE_ADD:
-    case R_ANAL_OP_TYPE_SUB:
-    case R_ANAL_OP_TYPE_MUL:
-    case R_ANAL_OP_TYPE_DIV:
-    case R_ANAL_OP_TYPE_MOD:
-    case R_ANAL_OP_TYPE_LENGTH:
+    case RZ_ANALYSIS_OP_TYPE_ADD:
+    case RZ_ANALYSIS_OP_TYPE_SUB:
+    case RZ_ANALYSIS_OP_TYPE_MUL:
+    case RZ_ANALYSIS_OP_TYPE_DIV:
+    case RZ_ANALYSIS_OP_TYPE_MOD:
+    case RZ_ANALYSIS_OP_TYPE_LENGTH:
         return "math";
-    case R_ANAL_OP_TYPE_AND:
-    case R_ANAL_OP_TYPE_OR:
-    case R_ANAL_OP_TYPE_XOR:
-    case R_ANAL_OP_TYPE_NOT:
-    case R_ANAL_OP_TYPE_SHL:
-    case R_ANAL_OP_TYPE_SAL:
-    case R_ANAL_OP_TYPE_SAR:
-    case R_ANAL_OP_TYPE_SHR:
-    case R_ANAL_OP_TYPE_ROL:
-    case R_ANAL_OP_TYPE_ROR:
-    case R_ANAL_OP_TYPE_CPL:
+    case RZ_ANALYSIS_OP_TYPE_AND:
+    case RZ_ANALYSIS_OP_TYPE_OR:
+    case RZ_ANALYSIS_OP_TYPE_XOR:
+    case RZ_ANALYSIS_OP_TYPE_NOT:
+    case RZ_ANALYSIS_OP_TYPE_SHL:
+    case RZ_ANALYSIS_OP_TYPE_SAL:
+    case RZ_ANALYSIS_OP_TYPE_SAR:
+    case RZ_ANALYSIS_OP_TYPE_SHR:
+    case RZ_ANALYSIS_OP_TYPE_ROL:
+    case RZ_ANALYSIS_OP_TYPE_ROR:
+    case RZ_ANALYSIS_OP_TYPE_CPL:
         return "bin";
-    case R_ANAL_OP_TYPE_IO:
+    case RZ_ANALYSIS_OP_TYPE_IO:
         return "swi";
-    case R_ANAL_OP_TYPE_JMP:
-    case R_ANAL_OP_TYPE_UJMP:
-    case R_ANAL_OP_TYPE_IJMP:
-    case R_ANAL_OP_TYPE_RJMP:
-    case R_ANAL_OP_TYPE_IRJMP:
-    case R_ANAL_OP_TYPE_MJMP:
+    case RZ_ANALYSIS_OP_TYPE_JMP:
+    case RZ_ANALYSIS_OP_TYPE_UJMP:
+    case RZ_ANALYSIS_OP_TYPE_IJMP:
+    case RZ_ANALYSIS_OP_TYPE_RJMP:
+    case RZ_ANALYSIS_OP_TYPE_IRJMP:
+    case RZ_ANALYSIS_OP_TYPE_MJMP:
         return "jmp";
-    case R_ANAL_OP_TYPE_CJMP:
-    case R_ANAL_OP_TYPE_UCJMP:
-    case R_ANAL_OP_TYPE_SWITCH:
+    case RZ_ANALYSIS_OP_TYPE_CJMP:
+    case RZ_ANALYSIS_OP_TYPE_UCJMP:
+    case RZ_ANALYSIS_OP_TYPE_SWITCH:
         return "cjmp";
-    case R_ANAL_OP_TYPE_CMP:
-    case R_ANAL_OP_TYPE_ACMP:
+    case RZ_ANALYSIS_OP_TYPE_CMP:
+    case RZ_ANALYSIS_OP_TYPE_ACMP:
         return "cmp";
-    case R_ANAL_OP_TYPE_UCALL:
-    case R_ANAL_OP_TYPE_ICALL:
-    case R_ANAL_OP_TYPE_RCALL:
-    case R_ANAL_OP_TYPE_IRCALL:
-    case R_ANAL_OP_TYPE_UCCALL:
-    case R_ANAL_OP_TYPE_CALL:
-    case R_ANAL_OP_TYPE_CCALL:
+    case RZ_ANALYSIS_OP_TYPE_UCALL:
+    case RZ_ANALYSIS_OP_TYPE_ICALL:
+    case RZ_ANALYSIS_OP_TYPE_RCALL:
+    case RZ_ANALYSIS_OP_TYPE_IRCALL:
+    case RZ_ANALYSIS_OP_TYPE_UCCALL:
+    case RZ_ANALYSIS_OP_TYPE_CALL:
+    case RZ_ANALYSIS_OP_TYPE_CCALL:
         return "call";
-    case R_ANAL_OP_TYPE_NEW:
-    case R_ANAL_OP_TYPE_SWI:
+    case RZ_ANALYSIS_OP_TYPE_NEW:
+    case RZ_ANALYSIS_OP_TYPE_SWI:
         return "swi";
-    case R_ANAL_OP_TYPE_ILL:
-    case R_ANAL_OP_TYPE_TRAP:
+    case RZ_ANALYSIS_OP_TYPE_ILL:
+    case RZ_ANALYSIS_OP_TYPE_TRAP:
         return "trap";
-    case R_ANAL_OP_TYPE_CRET:
-    case R_ANAL_OP_TYPE_RET:
+    case RZ_ANALYSIS_OP_TYPE_CRET:
+    case RZ_ANALYSIS_OP_TYPE_RET:
         return "ret";
-    case R_ANAL_OP_TYPE_CAST:
-    case R_ANAL_OP_TYPE_MOV:
-    case R_ANAL_OP_TYPE_LEA:
-    case R_ANAL_OP_TYPE_CMOV: // TODO: add cmov cathegory?
+    case RZ_ANALYSIS_OP_TYPE_CAST:
+    case RZ_ANALYSIS_OP_TYPE_MOV:
+    case RZ_ANALYSIS_OP_TYPE_LEA:
+    case RZ_ANALYSIS_OP_TYPE_CMOV: // TODO: add cmov cathegory?
         return "mov";
-    case R_ANAL_OP_TYPE_PUSH:
-    case R_ANAL_OP_TYPE_UPUSH:
-    case R_ANAL_OP_TYPE_LOAD:
+    case RZ_ANALYSIS_OP_TYPE_PUSH:
+    case RZ_ANALYSIS_OP_TYPE_UPUSH:
+    case RZ_ANALYSIS_OP_TYPE_LOAD:
         return "push";
-    case R_ANAL_OP_TYPE_POP:
-    case R_ANAL_OP_TYPE_STORE:
+    case RZ_ANALYSIS_OP_TYPE_POP:
+    case RZ_ANALYSIS_OP_TYPE_STORE:
         return "pop";
-    case R_ANAL_OP_TYPE_CRYPTO:
+    case RZ_ANALYSIS_OP_TYPE_CRYPTO:
         return "crypto";
-    case R_ANAL_OP_TYPE_NULL:
+    case RZ_ANALYSIS_OP_TYPE_NULL:
         return "other";
-    case R_ANAL_OP_TYPE_UNK:
+    case RZ_ANALYSIS_OP_TYPE_UNK:
     default:
         return "invalid";
     }

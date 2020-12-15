@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QVBoxLayout>
 #include <QRegularExpression>
+#include <QToolTip>
 #include <QTextBlockUserData>
 #include <QPainter>
 #include <QPainterPath>
@@ -126,6 +127,7 @@ DisassemblyWidget::DisassemblyWidget(MainWindow *main)
     asm_docu->setDocumentMargin(10);
 
     // Event filter to intercept double clicks in the textbox
+    // and showing tooltips when hovering above those offsets
     mDisasTextEdit->viewport()->installEventFilter(this);
 
     // Set Disas context menu
@@ -315,6 +317,10 @@ void DisassemblyWidget::refreshDisasm(RVA offset)
         bottomOffset = topOffset;
     }
 
+    connectCursorPositionChanged(false);
+
+    updateCursorPosition();
+
     // remove additional lines
     QTextCursor tc = mDisasTextEdit->textCursor();
     tc.movePosition(QTextCursor::Start);
@@ -322,10 +328,6 @@ void DisassemblyWidget::refreshDisasm(RVA offset)
     tc.movePosition(QTextCursor::EndOfLine);
     tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
     tc.removeSelectedText();
-
-    connectCursorPositionChanged(false);
-
-    updateCursorPosition();
 
     mDisasTextEdit->setLockScroll(false);
     mDisasTextEdit->horizontalScrollBar()->setValue(horizontalScrollValue);
@@ -374,15 +376,26 @@ bool DisassemblyWidget::updateMaxLines()
 void DisassemblyWidget::highlightCurrentLine()
 {
     QList<QTextEdit::ExtraSelection> extraSelections;
-
     QColor highlightColor = ConfigColor("lineHighlight");
-    QColor highlightPCColor = ConfigColor("highlightPC");
 
     // Highlight the current word
     QTextCursor cursor = mDisasTextEdit->textCursor();
-    cursor.select(QTextCursor::WordUnderCursor);
-    QString searchString = cursor.selectedText();
-    curHighlightedWord = searchString;
+    auto clickedCharPos = cursor.positionInBlock();
+    // Select the line (BlockUnderCursor matches a line with current implementation)
+    cursor.select(QTextCursor::BlockUnderCursor);
+    // Remove any non-breakable space from the current line
+    QString searchString = cursor.selectedText().replace("\xc2\xa0", " ");
+    // Cut the line in "tokens" that can be highlighted
+    static const QRegularExpression tokenRegExp(R"(\b(?<!\.)([^\s]+)\b(?!\.))");
+    QRegularExpressionMatchIterator i = tokenRegExp.globalMatch(searchString);
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        // Current token is under our cursor, select this one
+        if (match.capturedStart() <= clickedCharPos && match.capturedEnd() > clickedCharPos) {
+            curHighlightedWord = match.captured();
+            break;
+        }
+    }
 
     // Highlight the current line
     QTextEdit::ExtraSelection highlightSelection;
@@ -409,9 +422,18 @@ void DisassemblyWidget::highlightCurrentLine()
     // Highlight all the words in the document same as the current one
     extraSelections.append(createSameWordsSelections(mDisasTextEdit, curHighlightedWord));
 
-    // highlight PC line
+    mDisasTextEdit->setExtraSelections(extraSelections);
+}
+
+void DisassemblyWidget::highlightPCLine()
+{
     RVA PCAddr = Core()->getProgramCounterValue();
-    highlightSelection.cursor = cursor;
+
+    QColor highlightPCColor = ConfigColor("highlightPC");
+
+    QList<QTextEdit::ExtraSelection> pcSelections;
+    QTextEdit::ExtraSelection highlightSelection;
+    highlightSelection.cursor = mDisasTextEdit->textCursor();
     highlightSelection.cursor.movePosition(QTextCursor::Start);
     if (PCAddr != RVA_INVALID) {
         while (true) {
@@ -420,7 +442,7 @@ void DisassemblyWidget::highlightCurrentLine()
                 highlightSelection.format.setBackground(highlightPCColor);
                 highlightSelection.format.setProperty(QTextFormat::FullWidthSelection, true);
                 highlightSelection.cursor.clearSelection();
-                extraSelections.append(highlightSelection);
+                pcSelections.append(highlightSelection);
             } else if (lineOffset != RVA_INVALID && lineOffset > PCAddr) {
                 break;
             }
@@ -433,7 +455,11 @@ void DisassemblyWidget::highlightCurrentLine()
         }
     }
 
-    mDisasTextEdit->setExtraSelections(extraSelections);
+    // Don't override any extraSelections already set
+    QList<QTextEdit::ExtraSelection> currentSelections = mDisasTextEdit->extraSelections();
+    currentSelections.append(pcSelections);
+
+    mDisasTextEdit->setExtraSelections(currentSelections);
 }
 
 void DisassemblyWidget::showDisasContextMenu(const QPoint &pt)
@@ -513,6 +539,9 @@ void DisassemblyWidget::updateCursorPosition()
             mDisasTextEdit->setTextCursor(originalCursor);
         }
     }
+
+    highlightPCLine();
+
     connectCursorPositionChanged(false);
 }
 
@@ -545,6 +574,7 @@ void DisassemblyWidget::cursorPositionChanged()
     seekable->seek(offset);
     seekFromCursor = false;
     highlightCurrentLine();
+    highlightPCLine();
     mCtxMenu->setCanCopy(mDisasTextEdit->textCursor().hasSelection());
     if (mDisasTextEdit->textCursor().hasSelection()) {
         // A word is selected so use it
@@ -613,6 +643,7 @@ void DisassemblyWidget::moveCursorRelative(bool up, bool page)
         if (offset != seekable->getOffset()) {
             seekable->seek(offset);
             highlightCurrentLine();
+            highlightPCLine();
         }
     }
 }
@@ -631,6 +662,48 @@ bool DisassemblyWidget::eventFilter(QObject *obj, QEvent *event)
 
         const QTextCursor& cursor = mDisasTextEdit->cursorForPosition(QPoint(mouseEvent->x(), mouseEvent->y()));
         jumpToOffsetUnderCursor(cursor);
+
+        return true;
+    } else if (event->type() == QEvent::ToolTip
+         &&  obj == mDisasTextEdit->viewport()) {
+        QHelpEvent *helpEvent = static_cast<QHelpEvent*>(event);
+
+        auto cursorForWord = mDisasTextEdit->cursorForPosition(helpEvent->pos());
+        cursorForWord.select(QTextCursor::WordUnderCursor);
+
+        RVA offsetFrom = readDisassemblyOffset(cursorForWord);
+        RVA offsetTo = RVA_INVALID;
+
+        QList<XrefDescription> refs = Core()->getXRefs(offsetFrom, false, false);
+
+        if (refs.length()) {
+            if (refs.length() > 1) {
+                qWarning() << tr("More than one (%1) references here. Weird behaviour expected.")
+                    .arg(refs.length());
+            }
+            offsetTo = refs.at(0).to; //This is the offset we want to preview
+
+            if(Q_UNLIKELY(offsetFrom != refs.at(0).from)) {
+                qWarning() << tr("offsetFrom (%1) differs from refs.at(0).from (%(2))")
+                    .arg(offsetFrom).arg(refs.at(0).from);
+            }
+
+            // Only if the offset we point *to* is different from the one the cursor is currently
+            // on *and* the former is a valid offset, we are allowed to get a preview of offsetTo
+            if(offsetTo != offsetFrom && offsetTo != RVA_INVALID) {
+                QStringList disasmPreview = Core()->getDisassemblyPreview(offsetTo, 10);
+
+                // Last check to make sure the returned preview isn't an empty text (QStringList)
+                if (!disasmPreview.isEmpty()) {
+                    const QFont &fnt = Config()->getFont();
+                    QFontMetrics fm{ fnt };
+
+                    QString tooltip = QString("<html><div style=\"font-family: %1; font-size: %2pt; white-space: nowrap;\"><div style=\"margin-bottom: 10px;\"><strong>Disassembly Preview</strong>:<br>%3<div>")
+                        .arg(fnt.family()).arg(qMax(6, fnt.pointSize() - 1)).arg(disasmPreview.join("<br>"));
+                    QToolTip::showText(helpEvent->globalPos(), tooltip, this, QRect(), 3500);
+                }
+            }
+        }
 
         return true;
     }

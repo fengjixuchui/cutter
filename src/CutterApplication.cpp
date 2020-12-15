@@ -74,17 +74,17 @@ CutterApplication::CutterApplication(int &argc, char **argv) : QApplication(argc
         std::exit(1);
     }
 
-    // Check r2 version
-    QString r2version = r_core_version();
-    QString localVersion = "" R2_GITTAP;
-    if (r2version != localVersion) {
+    // Check rizin version
+    QString rzversion = rz_core_version();
+    QString localVersion = "" RZ_GITTAP;
+    if (rzversion != localVersion) {
         QMessageBox msg;
         msg.setIcon(QMessageBox::Critical);
         msg.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
         msg.setWindowTitle(QObject::tr("Version mismatch!"));
         msg.setText(QString(
-                        QObject::tr("The version used to compile Cutter (%1) does not match the binary version of radare2 (%2). This could result in unexpected behaviour. Are you sure you want to continue?")).arg(
-                        localVersion, r2version));
+                        QObject::tr("The version used to compile Cutter (%1) does not match the binary version of rizin (%2). This could result in unexpected behaviour. Are you sure you want to continue?")).arg(
+                        localVersion, rzversion));
         if (msg.exec() == QMessageBox::No) {
             std::exit(1);
         }
@@ -99,7 +99,7 @@ CutterApplication::CutterApplication(int &argc, char **argv) : QApplication(argc
 #endif
 
 #ifdef Q_OS_WIN
-    // Redefine r_sys_prefix() behaviour
+    // Redefine rz_sys_prefix() behaviour
     qputenv("R_ALT_SRC_DIR", "1");
 #endif
 
@@ -151,27 +151,27 @@ CutterApplication::CutterApplication(int &argc, char **argv) : QApplication(argc
         appdir.cdUp(); // appdir
 
         auto sleighHome = appdir;
-        sleighHome.cd("share/radare2/plugins/r2ghidra_sleigh"); // appdir/share/radare2/plugins/r2ghidra_sleigh
-        Core()->setConfig("r2ghidra.sleighhome", sleighHome.absolutePath());
+        sleighHome.cd("share/rizin/plugins/rz_ghidra_sleigh"); // appdir/share/rizin/plugins/rz_ghidra_sleigh
+        Core()->setConfig("ghidra.sleighhome", sleighHome.absolutePath());
 
         auto r2decHome = appdir;
-        r2decHome.cd("share/radare2/plugins/r2dec-js"); // appdir/share/radare2/plugins/r2dec-js
+        r2decHome.cd("share/rizin/plugins/r2dec-js"); // appdir/share/rizin/plugins/r2dec-js
         qputenv("R2DEC_HOME", r2decHome.absolutePath().toLocal8Bit());
     }
 #endif
 
 #ifdef Q_OS_MACOS
     {
-        auto r2prefix = QDir(QCoreApplication::applicationDirPath()); // Contents/MacOS
-        r2prefix.cdUp(); // Contents
-        r2prefix.cd("Resources/r2"); // Contents/Resources/r2
+        auto rzprefix = QDir(QCoreApplication::applicationDirPath()); // Contents/MacOS
+        rzprefix.cdUp(); // Contents
+        rzprefix.cd("Resources"); // Contents/Resources/r2
 
-        auto sleighHome = r2prefix;
-        sleighHome.cd("share/radare2/plugins/r2ghidra_sleigh"); // Contents/Resources/r2/share/radare2/plugins/r2ghidra_sleigh
-        Core()->setConfig("r2ghidra.sleighhome", sleighHome.absolutePath());
+        auto sleighHome = rzprefix;
+        sleighHome.cd("share/rizin/plugins/rz_ghidra_sleigh"); // Contents/Resources/r2/share/rizin/plugins/rz_ghidra_sleigh
+        Core()->setConfig("ghidra.sleighhome", sleighHome.absolutePath());
 
-        auto r2decHome = r2prefix;
-        r2decHome.cd("share/radare2/plugins/r2dec-js"); // Contents/Resources/r2/share/radare2/plugins/r2dec-js
+        auto r2decHome = rzprefix;
+        r2decHome.cd("share/rizin/plugins/r2dec-js"); // Contents/Resources/r2/share/rizin/plugins/r2dec-js
         qputenv("R2DEC_HOME", r2decHome.absolutePath().toLocal8Bit());
     }
 #endif
@@ -182,8 +182,8 @@ CutterApplication::CutterApplication(int &argc, char **argv) : QApplication(argc
 #ifdef Q_OS_WIN
     {
         auto sleighHome = QDir(QCoreApplication::applicationDirPath());
-        sleighHome.cd("lib/plugins/r2ghidra_sleigh");
-        Core()->setConfig("r2ghidra.sleighhome", sleighHome.absolutePath());
+        sleighHome.cd("lib/plugins/rz_ghidra_sleigh");
+        Core()->setConfig("ghidra.sleighhome", sleighHome.absolutePath());
     }
 #endif
 }
@@ -299,7 +299,7 @@ bool CutterApplication::parseCommandLineOptions()
 
     QCommandLineParser cmd_parser;
     cmd_parser.setApplicationDescription(
-        QObject::tr("A Qt and C++ GUI for radare2 reverse engineering framework"));
+        QObject::tr("A Qt and C++ GUI for rizin reverse engineering framework"));
     cmd_parser.addHelpOption();
     cmd_parser.addVersionOption();
     cmd_parser.addPositionalArgument("filename", QObject::tr("Filename to open."));
@@ -352,7 +352,7 @@ bool CutterApplication::parseCommandLineOptions()
     cmd_parser.addOption(disableCutterPlugins);
 
     QCommandLineOption disableR2Plugins("no-r2-plugins",
-                                        QObject::tr("Do not load radare2 plugins"));
+                                        QObject::tr("Do not load rizin plugins"));
     cmd_parser.addOption(disableR2Plugins);
 
     cmd_parser.process(*this);

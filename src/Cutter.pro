@@ -3,7 +3,7 @@ TEMPLATE = app
 TARGET = Cutter
 
 CUTTER_VERSION_MAJOR = 1
-CUTTER_VERSION_MINOR = 11
+CUTTER_VERSION_MINOR = 12
 CUTTER_VERSION_PATCH = 0
 
 VERSION = $${CUTTER_VERSION_MAJOR}.$${CUTTER_VERSION_MINOR}.$${CUTTER_VERSION_PATCH}
@@ -11,22 +11,25 @@ VERSION = $${CUTTER_VERSION_MAJOR}.$${CUTTER_VERSION_MINOR}.$${CUTTER_VERSION_PA
 # Required QT version
 lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5")
 
-TRANSLATIONS += translations/cutter_ar.ts \
-                translations/cutter_ca.ts \
-                translations/cutter_cn.ts \
-                translations/cutter_de.ts \
-                translations/cutter_es.ts \
-                translations/cutter_fa.ts \
-                translations/cutter_fr.ts \
-                translations/cutter_he.ts \
-                translations/cutter_hi.ts \
-                translations/cutter_it.ts \
-                translations/cutter_ja.ts \
-                translations/cutter_nl.ts \
-                translations/cutter_pt.ts \
-                translations/cutter_ro.ts \
-                translations/cutter_ru.ts \
-                translations/cutter_tr.ts
+TRANSLATIONS += translations/ar/cutter_ar.ts \
+                translations/ca/cutter_ca.ts \
+                translations/de/cutter_de.ts \
+                translations/es-ES/cutter_es.ts \
+                translations/fa/cutter_fa.ts \
+                translations/fr/cutter_fr.ts \
+                translations/he/cutter_he.ts \
+                translations/hi/cutter_hi.ts \
+                translations/it/cutter_it.ts \
+                translations/ja/cutter_ja.ts \
+                translations/nl/cutter_nl.ts \
+                translations/pt-PT/cutter_pt.ts \
+                translations/ro/cutter_ro.ts \
+                translations/ru/cutter_ru.ts \
+                translations/tr/cutter_tr.ts \
+                translations/zh-CN/cutter_zh.ts
+
+# translations/ko/cutter_ko.ts problems with fonts
+# translations/pt-BR/cutter_pt.ts #2321 handling multiple versions of a language
 
 # Icon for OS X
 ICON = img/cutter.icns
@@ -277,7 +280,7 @@ QMAKE_CXXFLAGS += -g
 
 macx:CUTTER_BUNDLE_R2_APPBUNDLE {
     message("Using r2 rom AppBundle")
-    DEFINES += MACOS_R2_BUNDLED
+    DEFINES += MACOS_RZ_BUNDLED
 }
 
 CUTTER_APPVEYOR_R2DEC {
@@ -341,7 +344,6 @@ SOURCES += \
     widgets/HexdumpWidget.cpp \
     common/Configuration.cpp \
     common/Colors.cpp \
-    dialogs/SaveProjectDialog.cpp \
     common/TempConfig.cpp \
     common/SvgIconEngine.cpp \
     common/SyntaxHighlighter.cpp \
@@ -440,7 +442,8 @@ SOURCES += \
     widgets/R2GraphWidget.cpp \
     widgets/CallGraph.cpp \
     widgets/AddressableDockWidget.cpp \
-    dialogs/preferences/AnalOptionsWidget.cpp
+    dialogs/preferences/AnalOptionsWidget.cpp \
+    common/DecompilerHighlighter.cpp
 
 GRAPHVIZ_SOURCES = \
     widgets/GraphvizLayout.cpp
@@ -491,7 +494,6 @@ HEADERS  += \
     widgets/HexdumpWidget.h \
     common/Configuration.h \
     common/Colors.h \
-    dialogs/SaveProjectDialog.h \
     common/TempConfig.h \
     common/SvgIconEngine.h \
     common/SyntaxHighlighter.h \
@@ -599,7 +601,8 @@ HEADERS  += \
     widgets/R2GraphWidget.h \
     widgets/CallGraph.h \
     widgets/AddressableDockWidget.h \
-    dialogs/preferences/AnalOptionsWidget.h
+    dialogs/preferences/AnalOptionsWidget.h \
+    common/DecompilerHighlighter.h
 
 GRAPHVIZ_HEADERS = widgets/GraphvizLayout.h
 
@@ -616,7 +619,7 @@ FORMS    += \
     dialogs/RemoteDebugDialog.ui \
     dialogs/NativeDebugDialog.ui \
     dialogs/XrefsDialog.ui \
-    dialogs/NewfileDialog.ui \
+    dialogs/NewFileDialog.ui \
     dialogs/InitialOptionsDialog.ui \
     dialogs/EditFunctionDialog.ui \
     core/MainWindow.ui \
@@ -626,7 +629,6 @@ FORMS    += \
     widgets/FlagsWidget.ui \
     widgets/StringsWidget.ui \
     widgets/HexdumpWidget.ui \
-    dialogs/SaveProjectDialog.ui \
     dialogs/preferences/PreferencesDialog.ui \
     dialogs/preferences/AppearanceOptionsWidget.ui \
     dialogs/preferences/GraphOptionsWidget.ui \
