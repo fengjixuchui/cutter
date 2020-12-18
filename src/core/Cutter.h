@@ -20,13 +20,13 @@ class AsyncTaskManager;
 class BasicInstructionHighlighter;
 class CutterCore;
 class Decompiler;
-class R2Task;
-class R2TaskDialog;
+class RizinTask;
+class RizinTaskDialog;
 
 #include "common/BasicBlockHighlighter.h"
-#include "common/R2Task.h"
+#include "common/RizinTask.h"
 #include "common/Helpers.h"
-#include "dialogs/R2TaskDialog.h"
+#include "dialogs/RizinTaskDialog.h"
 
 #include <rz_project.h>
 
@@ -39,7 +39,7 @@ class CUTTER_EXPORT CutterCore: public QObject
     Q_OBJECT
 
     friend class RzCoreLocked;
-    friend class R2Task;
+    friend class RizinTask;
 
 public:
     explicit CutterCore(QObject *parent = nullptr);
@@ -50,7 +50,7 @@ public:
     void loadCutterRC();
     void loadDefaultCutterRC();
     QDir getCutterRCDefaultDirectory() const;
-    
+
     AsyncTaskManager *getAsyncTaskManager() { return asyncTaskManager; }
 
     RVA getOffset() const                   { return core_->offset; }
@@ -69,14 +69,14 @@ public:
      * @brief send a command to Rizin asynchronously
      * @param str the command you want to execute
      * @param task a shared pointer that will be returned with the R2 command task
-     * @note connect to the &R2Task::finished signal to add your own logic once
-     *       the command is finished. Use task->getResult()/getResultJson() for the 
+     * @note connect to the &RizinTask::finished signal to add your own logic once
+     *       the command is finished. Use task->getResult()/getResultJson() for the
      *       return value.
      *       Once you have setup connections you can start the task with task->startTask()
      *       If you want to seek to an address, you should use CutterCore::seek.
      */
-    bool asyncCmd(const char *str, QSharedPointer<R2Task> &task);
-    bool asyncCmd(const QString &str, QSharedPointer<R2Task> &task) { return asyncCmd(str.toUtf8().constData(), task); }
+    bool asyncCmd(const char *str, QSharedPointer<RizinTask> &task);
+    bool asyncCmd(const QString &str, QSharedPointer<RizinTask> &task) { return asyncCmd(str.toUtf8().constData(), task); }
 
     /**
      * @brief Execute a Rizin command \a cmd.  By nature, the API
@@ -94,7 +94,7 @@ public:
     /**
      * @brief Execute a Rizin command \a cmd at \a address. The function will preform a silent seek to the address
      * without triggering the seekChanged event nor adding new entries to the seek history. By nature, the
-     * API is executing a single command without going through Rizin shell, and thus ignores multiple commands 
+     * API is executing a single command without going through Rizin shell, and thus ignores multiple commands
      * and tries to overcome command injections.
      * @param cmd - a raw command to execute. If multiple commands will be passed (e.g "px 5; pd 7 && pdf") then
      * only the first command will be executed.
@@ -102,12 +102,12 @@ public:
      * @return the output of the command
      */
     QString cmdRawAt(const char *cmd, RVA address);
-    
+
     /**
      * @brief a wrapper around cmdRawAt(const char *cmd, RVA address).
      */
     QString cmdRawAt(const QString &str, RVA address) { return cmdRawAt(str.toUtf8().constData(), address); }
-    
+
     QJsonDocument cmdj(const char *str);
     QJsonDocument cmdj(const QString &str) { return cmdj(str.toUtf8().constData()); }
     QJsonDocument cmdjAt(const char *str, RVA address);
@@ -126,14 +126,14 @@ public:
      * @brief send a command to Rizin and check for ESIL errors
      * @param command the command you want to execute
      * @param task a shared pointer that will be returned with the R2 command task
-     * @note connect to the &R2Task::finished signal to add your own logic once
-     *       the command is finished. Use task->getResult()/getResultJson() for the 
+     * @note connect to the &RizinTask::finished signal to add your own logic once
+     *       the command is finished. Use task->getResult()/getResultJson() for the
      *       return value.
      *       Once you have setup connections you can start the task with task->startTask()
      *       If you want to seek to an address, you should use CutterCore::seek.
      */
-    bool asyncCmdEsil(const char *command, QSharedPointer<R2Task> &task);
-    bool asyncCmdEsil(const QString &command, QSharedPointer<R2Task> &task) { return asyncCmdEsil(command.toUtf8().constData(), task); }
+    bool asyncCmdEsil(const char *command, QSharedPointer<RizinTask> &task);
+    bool asyncCmdEsil(const QString &command, QSharedPointer<RizinTask> &task) { return asyncCmdEsil(command.toUtf8().constData(), task); }
     QString getVersionInformation();
 
     QJsonDocument parseJson(const char *res, const char *cmd = nullptr);
@@ -233,7 +233,7 @@ public:
     void setComment(RVA addr, const QString &cmt);
     void delComment(RVA addr);
     QString getCommentAt(RVA addr);
-    void setImmediateBase(const QString &r2BaseName, RVA offset = RVA_INVALID);
+    void setImmediateBase(const QString &rzBaseName, RVA offset = RVA_INVALID);
     void setCurrentBits(int bits, RVA offset = RVA_INVALID);
 
     /**
@@ -354,14 +354,14 @@ public:
     /**
      * @brief Returns a list of stack address and their telescoped references
      * @param size number of bytes to scan
-     * @param depth telescoping depth 
+     * @param depth telescoping depth
      */
     QList<QJsonObject> getStack(int size = 0x100, int depth = 6);
     /**
      * @brief Recursively dereferences pointers starting at the specified address
      *        up to a given depth
      * @param addr telescoping addr
-     * @param depth telescoping depth 
+     * @param depth telescoping depth
      */
     QJsonObject getAddrRefs(RVA addr, int depth);
     /**
@@ -420,7 +420,7 @@ public:
 
     bool isBreakpoint(const QList<RVA> &breakpoints, RVA addr);
     QList<RVA> getBreakpointsAddresses();
-    
+
     /**
      * @brief Get all breakpoinst that are belong to a functions at this address
      */
@@ -725,9 +725,9 @@ private:
     bool iocache = false;
     BasicInstructionHighlighter biHighlighter;
 
-    QSharedPointer<R2Task> debugTask;
-    R2TaskDialog *debugTaskDialog;
-    
+    QSharedPointer<RizinTask> debugTask;
+    RizinTaskDialog *debugTaskDialog;
+
     QVector<QString> getCutterRCFilePaths() const;
 };
 
