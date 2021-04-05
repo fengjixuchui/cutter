@@ -1,5 +1,5 @@
 version: '1.12.0-git-{build}'
-image: 'Previous Visual Studio 2019'
+image: 'Visual Studio 2017'
 clone_depth: 1
 
 # Build configuration
@@ -9,7 +9,7 @@ configuration:
 # Environment
 environment:
   NINJA_URL: https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-win.zip
-  VSVARSALLPATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat'
+  VSVARSALLPATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat'
   ARCH: x64
   PYTHON: 'C:\Python36-x64'
   PACKAGE_NAME: cutter-git-x64.Windows
@@ -46,7 +46,7 @@ build_script:
        -DCUTTER_ENABLE_PACKAGING=ON
        -DCUTTER_PACKAGE_DEPENDENCIES=ON
        -DCUTTER_PACKAGE_RZ_GHIDRA=ON
-       -DCUTTER_PACKAGE_R2DEC=OFF
+       -DCUTTER_PACKAGE_JSDEC=ON
        -DCUTTER_ENABLE_DEPENDENCY_DOWNLOADS=ON
        -DCUTTER_ENABLE_CRASH_REPORTS=ON
        -DCMAKE_PREFIX_PATH=%CUTTER_DEPS%\\pyside
@@ -64,17 +64,17 @@ artifacts:
   - path: "%ARTIFACT_PATH%"
     name: "%ARTIFACT_NAME%"
 
-deploy:
-  description: 'Cutter binaries'
-  provider: GitHub
-  auth_token:
-    secure: 2SmsqS2RaX2N5c9UwUcfBwNmMX64FfPAZFShLyxIkZXiC8vLaYCHToWxBYEuWRSk
-  artifact: "%ARTIFACT_NAME%"
-  draft: true
-  prerelease: true
-  on:
-    appveyor_repo_tag: true
-    DEPLOY: true
+#deploy:
+#  description: 'Cutter binaries'
+#  provider: GitHub
+#  auth_token:
+#    secure: 2SmsqS2RaX2N5c9UwUcfBwNmMX64FfPAZFShLyxIkZXiC8vLaYCHToWxBYEuWRSk
+#  artifact: "%ARTIFACT_NAME%"
+#  draft: true
+#  prerelease: true
+#  on:
+#    appveyor_repo_tag: true
+#    DEPLOY: true
 
 for:
   -

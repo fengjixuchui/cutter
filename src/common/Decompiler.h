@@ -11,7 +11,7 @@
 /**
  * Implements a decompiler that can be registered using CutterCore::registerDecompiler()
  */
-class CUTTER_EXPORT Decompiler: public QObject
+class CUTTER_EXPORT Decompiler : public QObject
 {
     Q_OBJECT
 
@@ -25,32 +25,32 @@ public:
 
     static RzAnnotatedCode *makeWarning(QString warningMessage);
 
-    QString getId() const       { return id; }
-    QString getName() const     { return name; }
-    virtual bool isRunning()    { return false; }
+    QString getId() const { return id; }
+    QString getName() const { return name; }
+    virtual bool isRunning() { return false; }
     virtual bool isCancelable() { return false; }
 
-    virtual void decompileAt(RVA addr) =0;
+    virtual void decompileAt(RVA addr) = 0;
     virtual void cancel() {}
 
 signals:
     void finished(RzAnnotatedCode *codeDecompiled);
 };
 
-class R2DecDecompiler: public Decompiler
+class JSDecDecompiler : public Decompiler
 {
     Q_OBJECT
 
 private:
-    RizinTask *task;
+    RizinCmdTask *task;
 
 public:
-    explicit R2DecDecompiler(QObject *parent = nullptr);
+    explicit JSDecDecompiler(QObject *parent = nullptr);
     void decompileAt(RVA addr) override;
 
-    bool isRunning() override    { return task != nullptr; }
+    bool isRunning() override { return task != nullptr; }
 
     static bool isAvailable();
 };
 
-#endif //DECOMPILER_H
+#endif // DECOMPILER_H

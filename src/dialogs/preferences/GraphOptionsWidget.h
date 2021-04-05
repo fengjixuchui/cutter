@@ -21,6 +21,7 @@ class GraphOptionsWidget : public QDialog
 public:
     explicit GraphOptionsWidget(PreferencesDialog *dialog);
     ~GraphOptionsWidget();
+
 private:
     std::unique_ptr<Ui::GraphOptionsWidget> ui;
 
@@ -30,6 +31,7 @@ private slots:
     void updateOptionsFromVars();
 
     void on_maxColsSpinBox_valueChanged(int value);
+    void on_minFontSizeSpinBox_valueChanged(int value);
     void on_graphOffsetCheckBox_toggled(bool checked);
 
     void checkTransparentStateChanged(int checked);
@@ -38,5 +40,4 @@ private slots:
     void layoutSpacingChanged();
 };
 
-
-#endif //GRAPHOPTIONSWIDGET_H
+#endif // GRAPHOPTIONSWIDGET_H

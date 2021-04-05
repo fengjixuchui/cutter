@@ -12,6 +12,7 @@
 #include <QShortcut>
 #include <QAction>
 
+#include <vector>
 
 class DisassemblyTextEdit;
 class DisassemblyScrollArea;
@@ -29,7 +30,7 @@ public:
 
 public slots:
     /**
-     * @brief Highlights the currently selected line and updates the 
+     * @brief Highlights the currently selected line and updates the
      * highlighting of the same words under the cursor in the visible screen.
      * This overrides all previous highlighting.
      */
@@ -98,7 +99,7 @@ private:
 
     void moveCursorRelative(bool up, bool page);
 
-    void jumpToOffsetUnderCursor(const QTextCursor&);
+    void jumpToOffsetUnderCursor(const QTextCursor &);
 };
 
 class DisassemblyScrollArea : public QAbstractScrollArea
@@ -119,22 +120,20 @@ private:
     void resetScrollBars();
 };
 
-
-class DisassemblyTextEdit: public QPlainTextEdit
+class DisassemblyTextEdit : public QPlainTextEdit
 {
     Q_OBJECT
 
 public:
     explicit DisassemblyTextEdit(QWidget *parent = nullptr)
-        : QPlainTextEdit(parent),
-          lockScroll(false) {}
-
-    void setLockScroll(bool lock)
+        : QPlainTextEdit(parent), lockScroll(false)
     {
-        this->lockScroll = lock;
     }
 
+    void setLockScroll(bool lock) { this->lockScroll = lock; }
+
     qreal textOffset() const;
+
 protected:
     bool viewportEvent(QEvent *event) override;
     void scrollContentsBy(int dx, int dy) override;
@@ -149,7 +148,7 @@ private:
  * This class is used to draw the left pane of the disassembly
  * widget. Its goal is to draw proper arrows for the jumps of the disassembly.
  */
-class DisassemblyLeftPanel: public QFrame
+class DisassemblyLeftPanel : public QFrame
 {
 public:
     DisassemblyLeftPanel(DisassemblyWidget *disas);
@@ -158,6 +157,40 @@ public:
 
 private:
     DisassemblyWidget *disas;
+
+    struct Arrow
+    {
+        Arrow(RVA v1, RVA v2) : min(v1), max(v2), level(0), up(false)
+        {
+            if (min > max) {
+                std::swap(min, max);
+                up = true;
+            }
+        }
+
+        inline bool contains(RVA point) const { return min <= point && max >= point; }
+
+        inline bool intersects(const Arrow &other) const
+        {
+            return std::max(min, other.min) <= std::min(max, other.max);
+        }
+
+        ut64 length() const { return max - min; }
+
+        RVA jmpFromOffset() const { return up ? max : min; }
+
+        RVA jmpToffset() const { return up ? min : max; }
+
+        RVA min;
+        RVA max;
+        uint32_t level;
+        bool up;
+    };
+
+    const size_t arrowsSize = 128;
+    const uint32_t maxLevelBeforeFlush = 32;
+    RVA lastBeginOffset = 0;
+    std::vector<Arrow> arrows;
 };
 
 #endif // DISASSEMBLYWIDGET_H

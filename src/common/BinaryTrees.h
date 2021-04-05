@@ -11,13 +11,13 @@
 #include <cstdint>
 #include <algorithm>
 
-
 /**
- * Not really a segment tree for storing segments as referred in academic literature. Can be considered a
- * full, almost perfect, augmented binary tree. In the context of competitive programming often called segment tree.
+ * Not really a segment tree for storing segments as referred in academic literature. Can be
+ * considered a full, almost perfect, augmented binary tree. In the context of competitive
+ * programming often called segment tree.
  *
- * Child classes are expected to implement updateFromChildren(NodeType&parent, NodeType& left, NodeType& right)
- * method which calculates inner node values from children nodes.
+ * Child classes are expected to implement updateFromChildren(NodeType&parent, NodeType& left,
+ * NodeType& right) method which calculates inner node values from children nodes.
  *
  * \tparam NodeTypeT type of each tree element
  * \tparam FinalType final child class used for curiously recurring template pattern
@@ -33,11 +33,7 @@ public:
      * @brief Create tree with \a size leaves.
      * @param size number of leaves in the tree
      */
-    explicit SegmentTreeBase(size_t size)
-        : size(size)
-        , nodeCount(2 * size)
-        , nodes(nodeCount)
-    {}
+    explicit SegmentTreeBase(size_t size) : size(size), nodeCount(2 * size), nodes(nodeCount) {}
 
     /**
      * @brief Create a tree with given size and initial value.
@@ -46,38 +42,23 @@ public:
      * @param size number of leaves
      * @param initialValue initial leave value
      */
-    SegmentTreeBase(size_t size, const NodeType &initialValue)
-        : SegmentTreeBase(size)
+    SegmentTreeBase(size_t size, const NodeType &initialValue) : SegmentTreeBase(size)
     {
         init(initialValue);
     }
+
 protected:
     // Curiously recurring template pattern
-    FinalType &This()
-    {
-        return static_cast<FinalType &>(*this);
-    }
+    FinalType &This() { return static_cast<FinalType &>(*this); }
 
     // Curiously recurring template pattern
-    const FinalType &This() const
-    {
-        return static_cast<const FinalType &>(*this);
-    }
+    const FinalType &This() const { return static_cast<const FinalType &>(*this); }
 
-    size_t leavePositionToIndex(NodePosition pos) const
-    {
-        return pos - size;
-    }
+    size_t leavePositionToIndex(NodePosition pos) const { return pos - size; }
 
-    NodePosition leaveIndexToPosition(size_t index) const
-    {
-        return index + size;
-    }
+    NodePosition leaveIndexToPosition(size_t index) const { return index + size; }
 
-    bool isLeave(NodePosition position) const
-    {
-        return position >= size;
-    }
+    bool isLeave(NodePosition position) const { return position >= size; }
 
     /**
      * @brief Calculate inner node values from leaves.
@@ -111,6 +92,7 @@ template<class NodeType, class FinalType>
 class PointSetSegmentTree : public SegmentTreeBase<NodeType, FinalType>
 {
     using BaseType = SegmentTreeBase<NodeType, FinalType>;
+
 public:
     using BaseType::BaseType;
 
@@ -125,7 +107,8 @@ public:
         this->nodes[pos] = value;
         while (pos > 1) {
             auto parrent = pos >> 1;
-            this->This().updateFromChildren(this->nodes[parrent], this->nodes[pos], this->nodes[pos ^ 1]);
+            this->This().updateFromChildren(this->nodes[parrent], this->nodes[pos],
+                                            this->nodes[pos ^ 1]);
             pos = parrent;
         }
     }
@@ -141,6 +124,7 @@ public:
 class PointSetMinTree : public PointSetSegmentTree<int, PointSetMinTree>
 {
     using BaseType = PointSetSegmentTree<int, PointSetMinTree>;
+
 public:
     using NodeType = int;
 
@@ -159,16 +143,15 @@ public:
      */
     int rightMostLessThan(size_t position, int value)
     {
-        auto isGood = [&](size_t pos) {
-            return nodes[pos] < value;
-        };
+        auto isGood = [&](size_t pos) { return nodes[pos] < value; };
         // right side exclusive range [l;r)
         size_t goodSubtree = 0;
         for (size_t l = leaveIndexToPosition(0), r = leaveIndexToPosition(position + 1); l < r;
-                l >>= 1, r >>= 1) {
+             l >>= 1, r >>= 1) {
             if (l & 1) {
                 if (isGood(l)) {
-                    // mark subtree as good but don't stop yet, there might be something good further to the right
+                    // mark subtree as good but don't stop yet, there might be something good
+                    // further to the right
                     goodSubtree = l;
                 }
                 ++l;
@@ -202,13 +185,11 @@ public:
      */
     int leftMostLessThan(size_t position, int value)
     {
-        auto isGood = [&](size_t pos) {
-            return nodes[pos] < value;
-        };
+        auto isGood = [&](size_t pos) { return nodes[pos] < value; };
         // right side exclusive range [l;r)
         size_t goodSubtree = 0;
         for (size_t l = leaveIndexToPosition(position), r = leaveIndexToPosition(size); l < r;
-                l >>= 1, r >>= 1) {
+             l >>= 1, r >>= 1) {
             if (l & 1) {
                 if (isGood(l)) {
                     goodSubtree = l;
@@ -220,7 +201,8 @@ public:
                 --r;
                 if (isGood(r)) {
                     goodSubtree = r;
-                    // mark subtree as good but don't stop yet, there might be something good further to the left
+                    // mark subtree as good but don't stop yet, there might be something good
+                    // further to the left
                 }
             }
         }
@@ -241,28 +223,28 @@ public:
 /**
  * \brief Tree that supports lazily applying an operation to range.
  *
- * Each inner node has a promise value describing an operation that needs to be applied to corresponding subtree.
+ * Each inner node has a promise value describing an operation that needs to be applied to
+ * corresponding subtree.
  *
- * Child classes are expected to implement to pushDown(size_t nodePosition) method. Which applies the applies the
- * operation stored in \a promise for nodePosition to the direct children nodes.
+ * Child classes are expected to implement to pushDown(size_t nodePosition) method. Which applies
+ * the applies the operation stored in \a promise for nodePosition to the direct children nodes.
  *
  * \tparam NodeType type of tree nodes
  * \tparam PromiseType type describing operation that needs to be applied to subtree
  * \tparam FinalType child class type for CRTP. See SegmentTreeBase
  */
-template <class NodeType, class PromiseType, class FinalType>
+template<class NodeType, class PromiseType, class FinalType>
 class LazySegmentTreeBase : public SegmentTreeBase<NodeType, FinalType>
 {
     using BaseType = SegmentTreeBase<NodeType, FinalType>;
+
 public:
     /**
      * @param size Number of tree leaves.
      * @param neutralPromise Promise value that doesn't modify tree nodes.
      */
     LazySegmentTreeBase(size_t size, const PromiseType &neutralPromise)
-        : BaseType(size)
-        , neutralPromiseElement(neutralPromise)
-        , promise(size, neutralPromise)
+        : BaseType(size), neutralPromiseElement(neutralPromise), promise(size, neutralPromise)
     {
         h = 0;
         size_t v = size;
@@ -324,7 +306,8 @@ protected:
         while (p > 1) {
             auto parent = p >> 1;
             if (promise[parent] == neutralPromiseElement) {
-                This().updateFromChildren(this->nodes[parent], this->nodes[p & ~size_t(1)], this->nodes[p | 1]);
+                This().updateFromChildren(this->nodes[parent], this->nodes[p & ~size_t(1)],
+                                          this->nodes[p | 1]);
             }
             p = parent;
         }
@@ -337,19 +320,16 @@ protected:
     std::vector<PromiseType> promise;
 };
 
-
 /**
  * @brief Structure supporting range assignment and range maximum operations.
  */
 class RangeAssignMaxTree : public LazySegmentTreeBase<int, uint8_t, RangeAssignMaxTree>
 {
     using BaseType = LazySegmentTreeBase<int, uint8_t, RangeAssignMaxTree>;
+
 public:
     using ValueType = int;
-    RangeAssignMaxTree(size_t size, ValueType initialValue)
-        : BaseType(size, initialValue, 0)
-    {
-    }
+    RangeAssignMaxTree(size_t size, ValueType initialValue) : BaseType(size, initialValue, 0) {}
 
     void updateFromChildren(NodeType &parent, const NodeType &left, const NodeType &right)
     {
@@ -413,6 +393,115 @@ public:
     int rangeMaximum(size_t l, size_t r)
     {
         return rangeOperation(l, r, std::numeric_limits<ValueType>::min());
+    }
+};
+
+/**
+ * @brief Structure for keeping track of minimum and maximum value set at each position.
+ *
+ * Supports range update and range query.
+ *
+ * Example:
+ *  @code{.cpp}
+ *  MinMaxAccumulateTree t(30); // operate within range [0; 30)
+ *  t.updateRange(1, 5, 10);
+ *  rangeMinMax(0, 20);// -> {10, 10}
+ *  t.updateRange(4, 6, 15);
+ *  t.updateRange(3, 10, 20);
+ *  t.rangeMinMax(0, 20); // -> {10, 20}
+ *  t.rangeMinMax(1, 3); // -> {10, 10}
+ *  t.rangeMinMax(5, 8); // -> {15, 20}
+ *  @endcode
+ */
+template<class IntegerType>
+class MinMaxAccumulateTree : public LazySegmentTreeBase<std::pair<IntegerType, IntegerType>,
+                                                        std::pair<IntegerType, IntegerType>,
+                                                        MinMaxAccumulateTree<IntegerType>>
+{
+    // Could work with other types but that would require changing LIMITS
+    static_assert(std::is_integral<IntegerType>::value,
+                  "Template argument IntegerType must be integer");
+    using MinMax = std::pair<IntegerType, IntegerType>;
+    using ValueType = MinMax;
+    using ThisType = MinMaxAccumulateTree<IntegerType>;
+    using BaseType = LazySegmentTreeBase<ValueType, MinMax, ThisType>;
+    using NodeType = typename BaseType::NodeType;
+    using NodePosition = typename BaseType::NodePosition;
+
+    static constexpr MinMax LIMITS()
+    {
+        return { std::numeric_limits<IntegerType>::max(), std::numeric_limits<IntegerType>::min() };
+    }
+
+    static MinMax Combine(const MinMax &a, const MinMax &b)
+    {
+        return { std::min(a.first, b.first), std::max(a.second, b.second) };
+    }
+
+    void UpdateNode(NodePosition nodePos, ValueType value)
+    {
+        this->nodes[nodePos] = Combine(this->nodes[nodePos], value);
+        if (!this->isLeave(nodePos)) {
+            this->promise[nodePos] = Combine(this->promise[nodePos], value);
+        }
+    }
+
+public:
+    MinMaxAccumulateTree(size_t size, ValueType initialValue = LIMITS())
+        : BaseType(size, initialValue, LIMITS())
+    {
+    }
+
+    void updateFromChildren(NodeType &parent, const NodeType &left, const NodeType &right)
+    {
+        parent = Combine(left, right);
+    }
+
+    void pushDown(NodePosition parent)
+    {
+        size_t left = (parent << 1);
+        size_t right = (parent << 1) | 1;
+        this->UpdateNode(left, this->promise[parent]);
+        this->UpdateNode(right, this->promise[parent]);
+        this->promise[parent] = this->neutralPromiseElement;
+    }
+
+    /**
+     * @brief Update min and max values in the range [\a left, \a right) with number \a value.
+     * @param left inclusive range left side
+     * @param right exclusive right side of range
+     * @param value number to be used for updating minimum and maximum
+     */
+    void updateRange(size_t left, size_t right, IntegerType value)
+    {
+        left = this->leaveIndexToPosition(left);
+        right = this->leaveIndexToPosition(right);
+        this->pushDownFromRoot(left);
+        this->pushDownFromRoot(right - 1);
+        MinMax pairValue { value, value };
+        for (size_t l = left, r = right; l < r; l >>= 1, r >>= 1) {
+            if (l & 1) {
+                UpdateNode(l, pairValue);
+                l += 1;
+            }
+            if (r & 1) {
+                r -= 1;
+                UpdateNode(r, pairValue);
+            }
+        }
+        this->updateUntilRoot(left);
+        this->updateUntilRoot(right - 1);
+    }
+
+    /**
+     * @brief Calculate minimum and maximum value in the range [l, r)
+     * @param l inclusive left side of range
+     * @param r exclusive right side of range
+     * @return std::pair {min, max}
+     */
+    MinMax rangeMinMax(size_t l, size_t r)
+    {
+        return this->rangeOperation(l, r, this->neutralPromiseElement);
     }
 };
 

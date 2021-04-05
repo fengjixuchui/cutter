@@ -22,7 +22,7 @@ Cutter release binaries for all major platforms (Linux, macOS, Windows) can be d
     `chmod +x Cutter*.AppImage; ./Cutter*.AppImage`
 - **macOS**: Download the `.dmg` file or use [Homebrew Cask](https://github.com/Homebrew/homebrew-cask):
 
-    `brew cask install cutter`
+    `brew install --cask cutter`
 - **Windows**: Download the `.zip` archive or use [Chocolatey](https://chocolatey.org):
 
     `choco install cutter`
@@ -50,7 +50,7 @@ Our community has built many plugins and useful scripts for Cutter such as the n
 
 **[Official & Community Plugins](https://github.com/rizinorg/cutter-plugins)**
 
-**[Plugins Development Guide]()**
+**[Plugins Development Guide](https://cutter.re/docs/plugins.html)**
 
 ## Getting Help
 

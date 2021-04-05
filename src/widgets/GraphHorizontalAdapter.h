@@ -4,6 +4,8 @@
 #include "core/Cutter.h"
 #include "GraphLayout.h"
 
+#include <memory>
+
 /**
  * @brief Adapter for converting vertical graph layout into horizontal one.
  */
@@ -11,11 +13,10 @@ class GraphHorizontalAdapter : public GraphLayout
 {
 public:
     GraphHorizontalAdapter(std::unique_ptr<GraphLayout> layout);
-    virtual void CalculateLayout(GraphLayout::Graph &blocks,
-                                 ut64 entry,
-                                 int &width,
+    virtual void CalculateLayout(GraphLayout::Graph &blocks, ut64 entry, int &width,
                                  int &height) const override;
     void setLayoutConfig(const LayoutConfig &config) override;
+
 private:
     std::unique_ptr<GraphLayout> layout;
     void swapLayoutConfigDirection();

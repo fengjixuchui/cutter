@@ -26,32 +26,40 @@ public:
     QAction *actionContinueUntilMain;
     QAction *actionContinueUntilCall;
     QAction *actionContinueUntilSyscall;
+    QAction *actionContinueBack;
     QAction *actionStep;
     QAction *actionStepOver;
     QAction *actionStepOut;
+    QAction *actionStepBack;
     QAction *actionStop;
     QAction *actionAllContinues;
+    QAction *actionTrace;
 
     // Continue/suspend and start/restart interchange during runtime
     QIcon continueIcon;
     QIcon suspendIcon;
     QIcon restartIcon;
     QIcon startDebugIcon;
-    QString suspendLabel;
+    QIcon startTraceIcon;
+    QIcon stopTraceIcon;
     QString continueLabel;
+    QString suspendLabel;
     QString restartDebugLabel;
     QString startDebugLabel;
+    QString startTraceLabel;
+    QString stopTraceLabel;
 
     // Stop and Detach interchange during runtime
     QIcon detachIcon;
     QIcon stopIcon;
-    
+
 private:
     /**
      * @brief buttons that will be disabled/enabled on (disable/enable)DebugToolbar
      */
     QList<QAction *> toggleActions;
     QList<QAction *> toggleConnectionActions;
+    QList<QAction *> reverseActions;
     QList<QAction *> allActions;
     QToolButton *continueUntilButton;
     RemoteDebugDialog *remoteDialog = nullptr;

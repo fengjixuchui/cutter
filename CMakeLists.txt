@@ -10,7 +10,7 @@ include(Utils)
 
 set(CUTTER_PYTHON_MIN 3.5)
 
-option(CUTTER_USE_BUNDLED_RIZIN "Use rizin from src/rizin submodule instead of searching for it on the system" OFF)
+option(CUTTER_USE_BUNDLED_RIZIN "Use rizin from ./rizin submodule instead of searching for it on the system" ON)
 option(CUTTER_USE_ADDITIONAL_RIZIN_PATHS "Search rizin in additional paths which are not part of default system library paths.\
  Disable this option if you are linking against rizin pacakged as proper system library or in a custom path and additional are paths causing problems." ON)
 option(CUTTER_ENABLE_PYTHON "Enable Python integration. Requires Python >= ${CUTTER_PYTHON_MIN}." OFF)
@@ -25,27 +25,16 @@ option(CUTTER_ENABLE_DEPENDENCY_DOWNLOADS "Enable downloading of dependencies. S
 option(CUTTER_ENABLE_PACKAGING "Enable building platform-specific packages for distributing" OFF)
 option(CUTTER_PACKAGE_DEPENDENCIES "During install step include the third party dependencies." OFF)
 option(CUTTER_PACKAGE_RZ_GHIDRA "Compile and install rz-ghidra during install step." OFF)
-option(CUTTER_PACKAGE_R2DEC "Compile and install r2dec during install step." OFF)
+option(CUTTER_PACKAGE_JSDEC "Compile and install jsdec during install step." OFF)
 OPTION(CUTTER_QT6 "Use QT6" OFF)
 
 if(NOT CUTTER_ENABLE_PYTHON)
     set(CUTTER_ENABLE_PYTHON_BINDINGS OFF)
 endif()
 
-# Parse Cutter.pro to get filenames
-include(QMakeProParse)
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/Cutter.pro"
-        "${CMAKE_CURRENT_BINARY_DIR}/src/Cutter.pro"
-        COPYONLY) # trigger reconfigure if Cutter.pro changes
-parse_qmake_pro("${CMAKE_CURRENT_BINARY_DIR}/src/Cutter.pro" CUTTER_PRO)
-# TODO: These variables, exception the versions should be moved to src/CMakeLists.txt after qmake was removed
-set(SOURCE_FILES ${CUTTER_PRO_SOURCES})
-set(HEADER_FILES ${CUTTER_PRO_HEADERS})
-set(UI_FILES ${CUTTER_PRO_FORMS})
-set(QRC_FILES ${CUTTER_PRO_RESOURCES})
-set(CUTTER_VERSION_MAJOR "${CUTTER_PRO_CUTTER_VERSION_MAJOR}")
-set(CUTTER_VERSION_MINOR "${CUTTER_PRO_CUTTER_VERSION_MINOR}")
-set(CUTTER_VERSION_PATCH "${CUTTER_PRO_CUTTER_VERSION_PATCH}")
+set(CUTTER_VERSION_MAJOR 2)
+set(CUTTER_VERSION_MINOR 0)
+set(CUTTER_VERSION_PATCH 0)
 
 set(CUTTER_VERSION_FULL "${CUTTER_VERSION_MAJOR}.${CUTTER_VERSION_MINOR}.${CUTTER_VERSION_PATCH}")
 
